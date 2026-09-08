@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String          @id
+  name         String
+  email        String          @unique
+  passwordHash String
+  createdAt    DateTime        @default(now())
+  progress     TaskProgress[]
+  answers      AnswerAttempt[]
+  achievementShares AchievementShare[]
+}
+
+model AchievementShare {
+  token     String   @id @default(uuid())
+  userId    String
+  worldId   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, worldId])
+}
+
+model TaskProgress {
+  id          String          @id
+  userId      String
+  taskId      String
+  worldId     String
+  completed   Boolean         @default(false)
+  completedAt DateTime?
+  acertos     Int             @default(0)
+  erros       Int             @default(0)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers     AnswerAttempt[]
+
+  @@unique([userId, taskId])
+  @@index([userId])
+}
+
+model AnswerAttempt {
+  id             String       @id
+  userId         String
+  taskProgressId String
+  taskId         String
+  questionId     String
+  selectedIndex  Int
+  correctIndex   Int
+  isCorrect      Boolean
+  answeredAt     DateTime     @default(now())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskProgress   TaskProgress @relation(fields: [taskProgressId], references: [id], onDelete: Cascade)
+
+  @@index([userId, taskId])
+  @@index([taskProgressId])
+}
