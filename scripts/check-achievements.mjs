@@ -14,6 +14,11 @@ const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'star
 const base = 'http://localhost:3197';
 let userId;
 let cookie;
+let secondUserId;
+const email = `achievement-${randomUUID()}@example.test`;
+const password = randomUUID();
+server.stdout.resume();
+server.stderr.resume();
 async function post(path, body, authenticated = true) {
   return fetch(base + path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(authenticated && cookie ? { Cookie: cookie } : {}) }, body: JSON.stringify(body) });
 }
@@ -27,11 +32,19 @@ async function post(path, body, authenticated = true) {
     assert.ok(ready, 'Server starts');
     assert.equal((await fetch(base + '/icon.svg')).status, 200);
     assert.equal((await post('/api/achievements/share', { worldId: 'mundo-1' }, false)).status, 401);
-    const registration = await post('/api/session', { action: 'register', name: 'Teste de conquistas', email: `achievement-${randomUUID()}@example.test`, password: randomUUID() });
+    const registration = await post('/api/session', { action: 'register', name: 'Teste de conquistas', email, password });
     assert.equal(registration.status, 200);
     const account = await registration.json();
     userId = account.user.id;
     cookie = registration.headers.get('set-cookie').split(';')[0];
+    assert.match(registration.headers.get('set-cookie'), /HttpOnly/i);
+    assert.match(registration.headers.get('set-cookie'), /Secure/i);
+    assert.equal((await (await fetch(base + '/api/session', { headers: { Cookie: `politika_user=${userId}` } })).json()).user, null);
+    assert.equal((await (await fetch(base + '/api/session', { headers: { Cookie: cookie + 'tampered' } })).json()).user, null);
+    assert.equal((await post('/api/session', { action: 'register', name: 'Duplicado', email, password }, false)).status, 400);
+    assert.equal((await post('/api/session', { action: 'login', email, password: 'incorrect' }, false)).status, 400);
+    assert.equal((await post('/api/progress', { worldId: 'mundo-1', taskId: 'm1-t1', answers: [] }, false)).status, 401);
+    assert.equal((await post('/api/progress', { worldId: 'mundo-2', taskId: worlds[1].tasks[0].id, answers: [] })).status, 403);
     const profile = await (await fetch(base + '/perfil', { headers: { Cookie: cookie } })).text();
     assert.equal((profile.match(/class="achievement-card is-locked"/g) || []).length, 3);
     for (const world of worlds) {
@@ -57,10 +70,32 @@ async function post(path, body, authenticated = true) {
     const completedProfile = await (await fetch(base + '/perfil', { headers: { Cookie: cookie } })).text();
     assert.equal((completedProfile.match(/class="achievement-card unlocked"/g) || []).length, 3);
     assert.equal((await fetch(base + '/conquistas/invalid-token')).status, 404);
-    console.log('PASS: favicon, initial locks, authentication, answer validation, all 3 unlocks, persistent public links, anonymous access and private data exclusion.');
+    const persisted = await (await fetch(base + '/api/session', { headers: { Cookie: cookie } })).json();
+    assert.equal(persisted.progress.completedTasks.length, worlds.flatMap(world => world.tasks).length);
+    const logout = await fetch(base + '/api/session', { method: 'DELETE', headers: { Cookie: cookie } });
+    assert.equal(logout.status, 200);
+    assert.match(logout.headers.get('set-cookie'), /politika_user=;.*(?:Max-Age=0|Expires=Thu, 01 Jan 1970)/i);
+    assert.equal((await (await fetch(base + '/api/session')).json()).user, null);
+    const login = await post('/api/session', { action: 'login', email: email.toUpperCase(), password }, false);
+    assert.equal(login.status, 200);
+    const restored = await login.json();
+    assert.equal(restored.user.id, userId);
+    assert.deepEqual(restored.progress, persisted.progress);
+    const second = await post('/api/session', { action: 'register', name: 'Outra conta', email: `isolation-${randomUUID()}@example.test`, password }, false);
+    assert.equal(second.status, 200);
+    const isolated = await second.json();
+    secondUserId = isolated.user.id;
+    assert.deepEqual(isolated.progress.completedTasks, []);
+    assert.equal(await prisma.taskProgress.count({ where: { userId } }), worlds.flatMap(world => world.tasks).length);
+    assert.equal(await prisma.achievementShare.count({ where: { userId } }), 3);
+    console.log('PASS: cadastro, duplicidade, login, senha inválida, cookie, logout, persistência, isolamento, permissões, perfil, respostas e todas as conquistas.');
   } finally {
-    if (userId) await prisma.user.delete({ where: { id: userId } });
-    await prisma.$disconnect();
-    server.kill();
+    try {
+      if (userId) await prisma.user.delete({ where: { id: userId } });
+      if (secondUserId) await prisma.user.delete({ where: { id: secondUserId } });
+    } finally {
+      await prisma.$disconnect();
+      server.kill();
+    }
   }
 })().catch(error => { console.error(error); process.exitCode = 1; });

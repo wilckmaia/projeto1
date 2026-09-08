@@ -1,52 +1,41 @@
-# Politika
+﻿# Politika
 
-Politika e uma plataforma educacional gamificada para aprender politica brasileira e ciencia politica com linguagem clara, trilhas curtas e estudo apartidario.
+Plataforma educacional com cadastro, login, perfil, trilhas, progresso individual e conquistas compartilháveis. Next.js 16, Prisma 6, PostgreSQL e bcrypt.
 
-## MVP atual
+## Configuração
 
-- Dashboard com XP, nivel, streak, progresso e proxima aula.
-- 3 mundos e 10 topicos com conteudo inicial demonstravel.
-- Trilha visual com aulas bloqueadas/desbloqueadas.
-- Player em etapas com leitura, questoes de multipla escolha, V/F, selecao multipla e cenarios politicos.
-- XP por aula, nivel, sequencia diaria, revisao automatica, conquistas, perfil e ranking local.
-- Persistencia local com `localStorage` para testar o fluxo sem backend.
+Requer Node.js 24.x e PostgreSQL. Consulte [o guia de migração, Neon e Vercel](docs/postgresql-vercel.md), incluindo valores das variáveis, transferência de dados e configuração do deploy.
 
-## Como executar do zero
+Configure `.env` usando `.env.example`: `DATABASE_URL`, `DIRECT_URL` e `SESSION_SECRET`.
 
 ```bash
-npm install
+npm ci
+npm run db:migrate
+# Apenas na primeira transferência, com SQLite parado e destino vazio:
+npm run db:import:sqlite
 npm run dev
 ```
 
-Abra http://localhost:3000.
+Abra http://localhost:3000. Uma instalação nova sem dados anteriores não precisa executar o importador.
 
-## Perfil e conquistas
-
-Antes de iniciar uma instalação existente, execute `npx prisma db push` para adicionar a tabela `AchievementShare` e gerar o cliente Prisma, preservando os registros existentes.
-
-O perfil em `/perfil` oferece acesso ao painel, às trilhas e a três medalhas vetoriais próprias. Cada medalha desbloqueia quando todas as tarefas do respectivo mundo estão concluídas, inclusive para progresso já salvo. Responder todas as questões continua sendo o critério de conclusão; não é necessário acertar todas.
-
-O botão de compartilhamento cria um link persistente `/conquistas/<token>`, acessível sem login. A página verifica a conclusão no banco e publica apenas nome e conquista. O token público é independente do identificador de sessão. Para compartilhar fora do computador, o site precisa estar publicado em um endereço acessível, com banco persistente. O favicon vetorial está em `src/app/icon.svg`.
-
-## Como testar o fluxo
-
-1. Execute `npm run dev` e abra `http://localhost:3000`.
-2. Na tela inicial, escolha `Criar conta`, informe nome, e-mail e uma senha com pelo menos 6 caracteres.
-3. Responda uma tarefa e clique em `Salvar progresso`.
-4. Atualize a página ou feche e abra o navegador: a sessão e o progresso devem continuar.
-5. Clique em `Sair` e entre novamente com o mesmo e-mail e senha.
-6. Crie uma segunda conta para confirmar que ela começa sem o progresso da primeira.
-
-## Banco e arquitetura
-
-O projeto não tinha banco real antes: usava `.data/app-store.json` e criava usuários somente pelo nome. Agora usa SQLite local em `prisma/dev.db`, configurado por `DATABASE_URL` em `.env`, com Prisma Client em `src/lib/prisma.ts`.
-
-O schema em `prisma/schema.prisma` possui `User` (nome, e-mail e hash bcrypt da senha), `TaskProgress` (progresso por usuário e tarefa) e `AnswerAttempt` (usuário, atividade, pergunta, resposta escolhida, correção e data/hora). A camada `src/lib/storage.ts` converte essas tabelas para o formato de progresso já usado pelas telas. A sessão fica em cookie `httpOnly` com duração de 30 dias.
-
-## Validacao
+## Validação
 
 ```bash
 npm run lint
 npm run typecheck
 npm run build
+npm run test:integration
 ```
+
+O teste de integração usa PostgreSQL real, sobe o build na porta 3197 e remove as contas de teste ao terminar. Execute contra banco de desenvolvimento/homologação.
+
+## Arquitetura
+
+- `prisma/schema.prisma`: User, TaskProgress, AnswerAttempt e AchievementShare.
+- `src/lib/prisma.ts`: cliente reutilizado por processo; pooling Neon na aplicação.
+- `src/lib/storage.ts`: autenticação bcrypt e persistência de progresso.
+- `src/lib/session.ts`: cookie HTTP-only assinado, válido por 30 dias.
+- `prisma/migrations`: histórico PostgreSQL aplicado por migrate deploy.
+- `scripts/import-sqlite.mjs`: ferramenta offline; SQLite não participa do runtime.
+
+O build Vercel gera Prisma Client, aplica migrations e compila Next.js. Não use db push ou migrate reset em produção. Layout, conteúdo e critérios de conclusão foram preservados.

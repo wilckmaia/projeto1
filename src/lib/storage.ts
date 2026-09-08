@@ -4,9 +4,9 @@ import { cookies } from "next/headers";
 import { worlds } from "@/lib/data";
 import { defaultProgress, type ProgressAnswer, type UserProgress } from "@/lib/progress";
 import { prisma } from "@/lib/prisma";
+import { createSessionToken, readSessionToken, SESSION_MAX_AGE } from "@/lib/session";
 
 const SESSION_COOKIE = "politika_user";
-const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 export type UserRecord = { id: string; name: string; email: string; createdAt: string };
 const publicUser = (user: { id: string; name: string; email: string; createdAt: Date }): UserRecord => ({ id: user.id, name: user.name, email: user.email, createdAt: user.createdAt.toISOString() });
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
@@ -32,20 +32,21 @@ export async function loginUser(email: string, password: string) {
 
 async function setSession(userId: string) {
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, userId, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: SESSION_MAX_AGE });
+  cookieStore.set(SESSION_COOKIE, createSessionToken(userId), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: SESSION_MAX_AGE });
 }
 
 export async function logoutUser() { (await cookies()).delete(SESSION_COOKIE); }
 
 export async function getCurrentUser() {
-  const userId = (await cookies()).get(SESSION_COOKIE)?.value;
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const userId = token ? readSessionToken(token) : null;
   if (!userId) return null;
   const user = await prisma.user.findUnique({ where: { id: userId } });
   return user ? publicUser(user) : null;
 }
 
 export async function getProgressByUserId(userId: string): Promise<UserProgress> {
-  const records = await prisma.taskProgress.findMany({ where: { userId }, include: { answers: { orderBy: { answeredAt: "asc" } } }, orderBy: { completedAt: "asc" } });
+  const records = await prisma.taskProgress.findMany({ where: { userId }, include: { answers: { orderBy: { answeredAt: "asc" } } }, orderBy: { completedAt: { sort: "asc", nulls: "first" } } });
   const taskProgress = Object.fromEntries(records.map((record) => [record.taskId, { taskId: record.taskId, worldId: record.worldId, completed: record.completed, completedAt: record.completedAt?.toISOString() ?? null, answers: record.answers.map((answer) => ({ questionId: answer.questionId, selectedIndex: answer.selectedIndex, correctIndex: answer.correctIndex, isCorrect: answer.isCorrect })), acertos: record.acertos, erros: record.erros }]));
   const completedTasks = records.filter((record) => record.completed).map((record) => record.taskId);
   const completedWorlds = worlds.filter((world) => world.tasks.every((task) => completedTasks.includes(task.id))).map((world) => world.id);

@@ -1,6 +1,11 @@
 node_modules/
 .next/
 .env
+.env.*
+!.env.example
+.local-postgres/
+.migration-backups/
+*.tsbuildinfo
 prisma/dev.db
 prisma/dev.db-journal
 .data/
