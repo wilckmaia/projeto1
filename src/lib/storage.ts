@@ -47,16 +47,16 @@ export async function getCurrentUser() {
 
 export async function getProgressByUserId(userId: string): Promise<UserProgress> {
   const records = await prisma.taskProgress.findMany({ where: { userId }, include: { answers: { orderBy: { answeredAt: "asc" } } }, orderBy: { completedAt: { sort: "asc", nulls: "first" } } });
-  const taskProgress = Object.fromEntries(records.map((record) => [record.taskId, { taskId: record.taskId, worldId: record.worldId, completed: record.completed, completedAt: record.completedAt?.toISOString() ?? null, answers: record.answers.map((answer) => ({ questionId: answer.questionId, selectedIndex: answer.selectedIndex, correctIndex: answer.correctIndex, isCorrect: answer.isCorrect })), acertos: record.acertos, erros: record.erros }]));
+  const taskProgress = Object.fromEntries(records.map((record) => [record.taskId, { taskId: record.taskId, worldId: record.worldId, completed: record.completed, completedAt: record.completedAt?.toISOString() ?? null, answers: Array.from(new Map(record.answers.map((answer) => [answer.questionId, answer])).values()).map((answer) => ({ questionId: answer.questionId, selectedIndex: answer.selectedIndex, correctIndex: answer.correctIndex, isCorrect: answer.isCorrect })), acertos: record.acertos, erros: record.erros }]));
   const completedTasks = records.filter((record) => record.completed).map((record) => record.taskId);
   const completedWorlds = worlds.filter((world) => world.tasks.every((task) => completedTasks.includes(task.id))).map((world) => world.id);
   const lastRecord = records.at(-1);
   return { ...defaultProgress, completedTasks, completedWorlds, taskProgress, currentWorldId: lastRecord?.worldId ?? defaultProgress.currentWorldId, lastUpdated: lastRecord?.completedAt?.toISOString() ?? null };
 }
 
-export async function saveProgress(userId: string, progress: UserProgress) {
+export async function saveProgress(userId: string, progress: UserProgress, taskId?: string) {
   await prisma.$transaction(async (transaction) => {
-    const taskRecords = Object.values(progress.taskProgress).filter((task) => task.completedAt === progress.lastUpdated);
+    const taskRecords = Object.values(progress.taskProgress).filter((task) => taskId ? task.taskId === taskId : task.completedAt === progress.lastUpdated);
     for (const task of taskRecords) {
       const taskProgressId = `progress-${userId}-${task.taskId}`;
       await transaction.taskProgress.upsert({ where: { userId_taskId: { userId, taskId: task.taskId } }, create: { id: taskProgressId, userId, taskId: task.taskId, worldId: task.worldId, completed: task.completed, completedAt: task.completedAt ? new Date(task.completedAt) : null, acertos: task.acertos, erros: task.erros }, update: { worldId: task.worldId, completed: task.completed, completedAt: task.completedAt ? new Date(task.completedAt) : null, acertos: task.acertos, erros: task.erros } });

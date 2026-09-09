@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { notFound, redirect } from 'next/navigation';
 import { getTaskById, getWorldById } from '@/lib/data';
 import { getSessionPayload } from '@/lib/storage';
@@ -31,8 +32,9 @@ export default async function TaskPage({ params }: { params: Promise<{ world: st
   const nextHref = nextTask ? `/${world}/${nextTask.id}` : `/${world}`;
 
   return (
-    <main className="task-page">
-      <TaskExperience key={taskData.id} task={taskData} worldId={world} nextHref={nextHref} />
+    <main className="task-page" data-world={world} data-world-page={world}>
+      <header className="lesson-theme-header"><ThemeToggle /></header>
+      <TaskExperience key={taskData.id} task={taskData} worldId={world} nextHref={nextHref} initialProgress={session.progress.taskProgress[taskData.id]} />
     </main>
   );
 }

@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getWorldById } from '@/lib/data';
@@ -22,8 +23,9 @@ export default async function WorldPage({ params }: { params: Promise<{ world: s
   }
 
   return (
-    <main className="task-page">
+    <main className="task-page" data-world={world} data-world-page={world}>
       <div className="task-header">
+        <ThemeToggle />
         <Link href="/" className="back-button" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           ← Voltar ao início
         </Link>

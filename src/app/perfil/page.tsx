@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getSessionPayload } from '@/lib/storage';
@@ -23,14 +24,14 @@ export default async function ProfilePage() {
       </nav>
     </aside>
     <main className="main-panel">
-      <header className="topbar"><div><div className="eyebrow">Sua jornada, suas conquistas</div><h1 className="title">Meu perfil</h1></div><span className="pill">✦ {unlockedCount}/3 conquistas</span></header>
+      <header className="topbar"><div><div className="eyebrow">Sua jornada, suas conquistas</div><h1 className="title">Meu perfil</h1></div><div className="topbar-right"><ThemeToggle /><span className="pill">✦ {unlockedCount}/{achievements.length} conquistas</span></div></header>
       <section className="profile-summary"><div className="avatar">{user.name.slice(0, 2).toUpperCase()}</div><div><h2>{user.name}</h2><p>{progress.completedTasks.length} tarefas concluídas · Cada passo conta.</p></div></section>
       <div className="section-head"><h2>Uma medalha a cada mundo</h2></div>
       <p className="achievement-intro">Conclua todas as tarefas de um mundo para revelar sua conquista. Seu progresso é reconhecido automaticamente.</p>
       <div className="achievement-grid">{achievements.map((achievement) => {
         const unlocked = isAchievementUnlocked(achievement.worldId, progress);
         const summary = getWorldCompletion(achievement.worldId, progress);
-        return <article key={achievement.worldId} className={`achievement-card ${unlocked ? 'unlocked' : 'is-locked'}`} style={{ borderTopColor: achievement.color }}>
+        return <article data-world={achievement.worldId} key={achievement.worldId} className={`achievement-card ${unlocked ? 'unlocked' : 'is-locked'}`} style={{ borderTopColor: `var(--world-accent, ${achievement.color})` }}>
           <span className="achievement-state">{unlocked ? '✓ Desbloqueada' : '🔒 Bloqueada'} · Conquista {achievement.number}</span>
           <AchievementMedal achievement={achievement}/>
           <div className="eyebrow">Mundo {achievement.number} · {worlds.find((world) => world.id === achievement.worldId)?.name}</div>

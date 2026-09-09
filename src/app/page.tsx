@@ -1,9 +1,10 @@
 'use client';
 
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { worlds } from '@/lib/data';
-import { isWorldUnlocked, type UserProgress } from '@/lib/progress';
+import { getWorldStatus, isWorldUnlocked, type UserProgress } from '@/lib/progress';
 
 type SessionUser = { id: string; name: string };
 type SessionData = { user: SessionUser | null; progress: UserProgress };
@@ -73,6 +74,7 @@ export default function HomePage() {
     return (
       <main className="auth-screen">
         <div className="auth-card">
+          <header className="auth-header"><ThemeToggle /></header>
           <div className="eyebrow">Carregando</div>
           <h1>Preparando a trilha</h1>
         </div>
@@ -84,6 +86,7 @@ export default function HomePage() {
     return (
       <main className="auth-screen">
         <div className="auth-card">
+          <header className="auth-header"><ThemeToggle /></header>
           <div className="eyebrow">Usuário</div>
           <h1>{authMode === 'login' ? 'Entrar na sua trilha' : 'Criar sua conta'}</h1>
           <p>Seu progresso fica vinculado à conta e continua disponível quando você voltar.</p>
@@ -95,7 +98,7 @@ export default function HomePage() {
             {authMode === 'register' && <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" aria-label="Seu nome" />}
             <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Seu e-mail" aria-label="Seu e-mail" autoComplete="email" />
             <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Sua senha (mínimo 6 caracteres)" aria-label="Sua senha" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} />
-            {error && <p style={{ color: '#c65b4f', margin: 0 }}>{error}</p>}
+            {error && <p style={{ color: 'var(--danger-text)', margin: 0 }}>{error}</p>}
             <button type="button" onClick={submitAuth}>{authMode === 'login' ? 'Entrar' : 'Criar conta'}</button>
           </div>
         </div>
@@ -117,13 +120,14 @@ export default function HomePage() {
       return;
     }
 
-    const completed = world.tasks.filter((task) => progress.completedTasks.includes(task.id)).length;
+    const requiredTasks = world.prerequisiteWorldIds ? worlds.filter((item) => world.prerequisiteWorldIds?.includes(item.id)).flatMap((item) => item.tasks) : world.tasks;
+    const completed = requiredTasks.filter((task) => progress.completedTasks.includes(task.id)).length;
     setBlock({
       worldId,
       worldName: world.name,
       completed,
-      total: world.tasks.length,
-      missing: world.tasks.length - completed,
+      total: requiredTasks.length,
+      missing: requiredTasks.length - completed,
     });
   };
 
@@ -154,7 +158,7 @@ export default function HomePage() {
                 <small>Usuário ativo</small>
               </div>
             </div>
-            <button className="secondary-button" type="button" style={{ marginTop: 16, width: '100%', backgroundColor: '#b94f3d', color: '#fff', fontSize: 12, justifyContent: 'center', padding: '11px 8px' }} onClick={logout}>Sair</button>
+            <button className="secondary-button" type="button" style={{ marginTop: 16, width: '100%', backgroundColor: 'var(--danger-button)', color: 'var(--on-danger)', fontSize: 12, justifyContent: 'center', padding: '11px 8px' }} onClick={logout}>Sair</button>
           </div>
         </aside>
 
@@ -165,6 +169,7 @@ export default function HomePage() {
               <h1 className="title" style={{ fontSize: 'clamp(2rem, 3vw, 2.8rem)', marginBottom: 0 }}>Bem-vindo, {session.user.name}</h1>
             </div>
             <div className="topbar-right">
+              <ThemeToggle />
               <span className="pill"><span className="spark">✦</span> {progress.completedTasks.length} tarefas</span>
               <span className="pill"><span className="spark">⚡</span> {overall}% concluído</span>
             </div>
@@ -186,14 +191,14 @@ export default function HomePage() {
             <div className="metric-card golden">
               <span className="icon">◈</span>
               <small>Mundos</small>
-              <strong>{progress.completedWorlds.length}/3</strong>
-              <div className="progress-bar"><span style={{ width: `${(progress.completedWorlds.length / 3) * 100}%` }} /></div>
+              <strong>{progress.completedWorlds.length}/{worlds.length}</strong>
+              <div className="progress-bar"><span style={{ width: `${(progress.completedWorlds.length / worlds.length) * 100}%` }} /></div>
             </div>
           </div>
 
           <div className="two-col">
             <section className="highlight-panel">
-              <div className="eyebrow" style={{ color: '#b2c8c2' }}>Continuar</div>
+              <div className="eyebrow" style={{ color: 'var(--hero-muted)' }}>Continuar</div>
               <h2>{worlds[0].tasks[0].title}</h2>
               <div className="meta">Mundo 1 · Fundamentos</div>
               <div className="task-progress progress-bar"><span style={{ width: `${overall}%` }} /></div>
@@ -220,6 +225,7 @@ export default function HomePage() {
               return (
                 <button
                   key={world.id}
+                  data-world={world.id}
                   type="button"
                   className={`world-card ${worldMeta[world.id]?.color ?? 'coral'} ${unlocked ? '' : 'locked'} ${progress.currentWorldId === world.id ? 'selected' : ''}`}
                   onClick={() => openWorld(world.id)}
@@ -229,7 +235,7 @@ export default function HomePage() {
                   <div style={{ flex: 1 }}>
                     <small>MUNDO {world.number}</small>
                     <strong>{world.name}</strong>
-                    <div style={{ fontSize: '0.78rem', color: '#687d82', marginTop: 6 }}>{completed}/{total} tarefas</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 6 }}>{completed}/{total} tarefas</div>
                   </div>
                   <span className="lock">{unlocked ? (completed === total ? '✓' : '→') : '🔒'}</span>
                 </button>
@@ -239,10 +245,10 @@ export default function HomePage() {
 
           {block && (
             <div style={{ marginTop: 28, display: 'grid', placeItems: 'center' }}>
-              <div className="block-card">
+              <div className="block-card" data-world={block.worldId}>
                 <div className="eyebrow">🔒 Mundo bloqueado</div>
                 <h2>{block.worldName}</h2>
-                <p>Complete todas as atividades do Mundo anterior para desbloquear este mundo.</p>
+                <p>{getWorldStatus(block.worldId, progress).blockedReason}</p>
                 <div className="stats">
                   <span>Progresso atual: {block.completed}/{block.total} atividades concluídas.</span>
                   <span>Faltam: {block.missing} atividades.</span>
@@ -252,10 +258,10 @@ export default function HomePage() {
                   type="button"
                   onClick={() => {
                     setBlock(null);
-                    window.location.assign(block.worldId === 'mundo-2' ? '/mundo-1' : '/mundo-2');
+                    window.location.assign(worlds.find((world) => world.id === block.worldId)?.prerequisiteWorldIds ? `/${worlds.slice(0, 3).find((world) => world.tasks.some((task) => !progress.completedTasks.includes(task.id)))?.id ?? 'mundo-1'}` : block.worldId === 'mundo-2' ? '/mundo-1' : '/mundo-2');
                   }}
                 >
-                  Continuar Mundo {block.worldId === 'mundo-2' ? '1' : '2'}
+                  Continuar atividades
                 </button>
               </div>
             </div>
@@ -270,7 +276,7 @@ export default function HomePage() {
               world.tasks.map((task) => {
                 const done = progress.completedTasks.includes(task.id);
                 return (
-                  <button key={task.id} type="button" className="task-item" onClick={() => window.location.assign(`/${world.id}/${task.id}`)}>
+                  <button data-world={world.id} key={task.id} type="button" className="task-item" onClick={() => window.location.assign(`/${world.id}/${task.id}`)}>
                     <span className={`dot ${done ? '' : 'pending'}`} />
                     <div className="meta">
                       <strong>{task.title}</strong>

@@ -3,11 +3,13 @@
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import type { Task } from '@/lib/data';
+import type { TaskProgress } from '@/lib/progress';
 
 type Props = {
   task: Task & { worldId: string; worldName: string };
   worldId: string;
   nextHref: string;
+  initialProgress?: TaskProgress;
 };
 
 const buildResult = (sel: number | undefined, correct: number) => {
@@ -15,10 +17,12 @@ const buildResult = (sel: number | undefined, correct: number) => {
   return sel === correct ? 'correct' : 'wrong';
 };
 
-export function TaskExperience({ task, worldId, nextHref }: Props) {
+export function TaskExperience({ task, worldId, nextHref, initialProgress }: Props) {
   const saveInFlight = useRef(false);
-  const [selected, setSelected] = useState<Record<number, number>>({});
-  const [submitted, setSubmitted] = useState(false);
+  const restored = task.sequential ? Object.fromEntries((initialProgress?.answers ?? []).map((answer) => [Number(answer.questionId.slice(task.id.length + 1)), answer.selectedIndex])) : {};
+  const [selected, setSelected] = useState<Record<number, number>>(restored);
+  const [questionIndex, setQuestionIndex] = useState(Math.min(Object.keys(restored).length, task.questions.length - 1));
+  const [submitted, setSubmitted] = useState(Boolean(task.sequential && initialProgress?.completed));
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   const [achievementUnlocked, setAchievementUnlocked] = useState(false);
@@ -37,12 +41,12 @@ export function TaskExperience({ task, worldId, nextHref }: Props) {
 
   const handleSubmit = async () => {
     if (saveInFlight.current) return;
-    if (!allAnswered) {
+    if (task.sequential ? selected[questionIndex] === undefined : !allAnswered) {
       setToast('Responda todas as questões antes de corrigir.');
       return;
     }
 
-    const answers = task.questions.map((question, questionIndex) => {
+    const answers = task.questions.slice(0, task.sequential ? questionIndex + 1 : task.questions.length).map((question, questionIndex) => {
       const selectedIndex = selected[questionIndex];
       const isCorrect = selectedIndex === question.correctIndex;
       return {
@@ -95,29 +99,30 @@ export function TaskExperience({ task, worldId, nextHref }: Props) {
       <div className="eyebrow">{task.worldName}</div>
       <Link href="/perfil" className="profile-task-link">Meu perfil e conquistas ↗</Link>
       <h1>{task.title}</h1>
-      <div className="subtitle">{task.summary}</div>
+      <div className="subtitle">{task.sequential ? task.summary.split('\n\n').map((paragraph, index) => <p key={index}>{paragraph.split(/(\*\*.*?\*\*)/g).map((part, partIndex) => part.startsWith('**') ? <strong key={partIndex}>{part.slice(2, -2)}</strong> : part)}</p>) : task.summary}</div>
 
-      <div className="task-narrative">
+      {(task.explanation || task.deepContent) && <div className="task-narrative">
         <p>{task.explanation}</p>
         <p>{task.deepContent}</p>
-      </div>
+      </div>}
 
-      <div className="keybox">
+      {task.keyConcepts.length > 0 && <div className="keybox">
         <h3>Conceitos-chave</h3>
         <div className="kpis">
           {task.keyConcepts.map((concept) => (
             <span key={concept}>{concept}</span>
           ))}
         </div>
-      </div>
+      </div>}
 
-      {task.questions.map((question, questionIndex) => {
-        const currentSelection = selected[questionIndex];
+      {task.questions.map((question, index) => {
+        if (task.sequential && index !== questionIndex) return null;
+        const currentSelection = selected[index];
         const result = buildResult(currentSelection, question.correctIndex);
 
         return (
           <div className="question-card" key={question.prompt}>
-            <h3>{questionIndex + 1}. {question.prompt}</h3>
+            <h3>{index + 1}. {question.prompt}</h3>
             <div className="option-list">
               {question.options.map((option, optionIndex) => {
                 const buttonClass = submitted
@@ -135,10 +140,10 @@ export function TaskExperience({ task, worldId, nextHref }: Props) {
                     key={option}
                     type="button"
                     className={buttonClass}
-                    disabled={saving}
-                    onClick={() => handleSelect(questionIndex, optionIndex)}
+                    disabled={saving || Boolean(task.sequential && submitted)}
+                    onClick={() => handleSelect(index, optionIndex)}
                   >
-                    {option}
+                    {task.sequential ? `${String.fromCharCode(65 + optionIndex)}) ${option}` : option}
                   </button>
                 );
               })}
@@ -156,7 +161,13 @@ export function TaskExperience({ task, worldId, nextHref }: Props) {
 
       <div className="action-row">
         {submitted ? (
-          <button className="primary-button" type="button" onClick={() => window.location.assign(nextHref)}>
+          <button className="primary-button" type="button" onClick={() => {
+            if (task.sequential && questionIndex < task.questions.length - 1) {
+              setQuestionIndex((current) => current + 1);
+              setSubmitted(false);
+              setToast('');
+            } else window.location.assign(nextHref);
+          }}>
             Próxima
           </button>
         ) : (

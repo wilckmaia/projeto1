@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
@@ -15,8 +16,8 @@ export default async function PublicAchievement({ params }: { params: Promise<{ 
   if (!share) notFound();
   const achievement = achievements.find((item) => item.worldId === share.worldId);
   if (!achievement || !isAchievementUnlocked(share.worldId, await getProgressByUserId(share.userId))) notFound();
-  return <main className="public-achievement"><Link className="brand" href="/"><span className="brand-mark">P</span><span>politika<span className="brand-dot">.</span></span></Link>
-    <article className="achievement-card unlocked" style={{ borderTopColor: achievement.color }}>
+  return <main className="public-achievement" data-world={share.worldId} data-world-page={share.worldId}><header className="lesson-theme-header"><ThemeToggle /></header><Link className="brand" href="/"><span className="brand-mark">P</span><span>politika<span className="brand-dot">.</span></span></Link>
+    <article className="achievement-card unlocked" style={{ borderTopColor: `var(--world-accent, ${achievement.color})` }}>
       <div className="eyebrow">Conhecimento que merece ser celebrado</div><AchievementMedal achievement={achievement}/>
       <span className="achievement-state">✓ Conquista {achievement.number} verificada</span>
       <h1>{achievement.title}</h1><p><strong>{share.user.name}</strong> concluiu o Mundo {achievement.number}: {worlds.find((world) => world.id === share.worldId)?.name}.</p>

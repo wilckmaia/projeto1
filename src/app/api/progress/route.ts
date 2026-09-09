@@ -30,18 +30,22 @@ export async function POST(request: Request) {
     }
 
     // Completion requires every question; correctness is always computed on the server.
-    if (answers.length !== task.questions.length || task.questions.some((question, index) => {
+    if (answers.length === 0 || answers.length > task.questions.length || (!task.sequential && answers.length !== task.questions.length) || task.questions.slice(0, answers.length).some((question, index) => {
       const answer = answers[index];
       return answer?.questionId !== `${task.id}-${index}` || !Number.isInteger(answer?.selectedIndex) || answer.selectedIndex < 0 || answer.selectedIndex >= question.options.length;
     })) {
       return NextResponse.json({ error: "Responda todas as questões com opções válidas antes de concluir." }, { status: 400 });
     }
-    const verifiedAnswers = task.questions.map((question, index) => ({
+    const verifiedAnswers = task.questions.slice(0, answers.length).map((question, index) => ({
       questionId: `${task.id}-${index}`, selectedIndex: answers[index].selectedIndex,
       correctIndex: question.correctIndex, isCorrect: answers[index].selectedIndex === question.correctIndex,
     }));
     const updated = buildTaskCompletion(taskId, worldId, verifiedAnswers, new Date().toISOString(), progress);
-    await saveProgress(session.user.id, updated);
+    // A repeated request must not replace a longer saved attempt with a shorter one.
+    if (task.sequential && (progress.taskProgress[taskId]?.answers.length ?? 0) > verifiedAnswers.length) {
+      return NextResponse.json({ error: "Há respostas mais recentes. Recarregue a página para continuar." }, { status: 409 });
+    }
+    await saveProgress(session.user.id, updated, taskId);
 
     return NextResponse.json({ ok: true, progress: updated, message: "Progresso salvo com sucesso." }, { status: 200 });
   } catch (error) {

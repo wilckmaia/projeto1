@@ -1,0 +1,278 @@
+/* Semantic colors shared by the dashboard, authentication and lessons. */
+:root {
+  color-scheme: light;
+  --ink: #202d32; --muted: #53646a; --paper: #f5f7f5;
+  --surface: #ffffff; --surface-soft: #eaf0ed; --surface-hover: #dfe9e4;
+  --line: #bdccc4; --accent: #a84332; --accent-hover: #8b3427; --on-accent: #ffffff;
+  --accent-text: #9a392a; --accent-soft: #fae9e4;
+  --success-bg: #e4f4e9; --success-text: #235b39; --success-line: #4b8a61;
+  --danger-bg: #fce9e5; --danger-text: #913626; --danger-line: #bc6859;
+  --danger-button: #a8372a; --on-danger: #ffffff;
+  --disabled-bg: #dde3df; --disabled-text: #59665f;
+  --hero: #22323a; --hero-text: #f5faf7; --hero-muted: #b8cec5;
+  --shadow: 0 12px 32px #172f2220; --overlay: #101b2499;
+  --warm-bg: #faeee8; --warm-line: #dec5b9; --warm-text: #804737;
+  --cool-bg: #eaf0fc; --cool-line: #bdccec; --cool-text: #3156ac;
+  --gold-bg: #faf1d8; --gold-line: #decc93; --gold-text: #725518;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #e6eee9; --muted: #b0c2b8; --paper: #111a1e;
+  --surface: #1c292e; --surface-soft: #25373c; --surface-hover: #30474b;
+  --line: #50666a; --accent: #f19b84; --accent-hover: #ffb7a3; --on-accent: #35160f;
+  --accent-text: #ffb09a; --accent-soft: #412e29;
+  --success-bg: #1c3b2b; --success-text: #a7e8bb; --success-line: #71bb8b;
+  --danger-bg: #462622; --danger-text: #ffb9a9; --danger-line: #d68977;
+  --danger-button: #f5a493; --on-danger: #38120c;
+  --disabled-bg: #2c3c40; --disabled-text: #acbbb7;
+  --hero: #233b42; --hero-text: #f1f8f4; --hero-muted: #bad2c8;
+  --shadow: 0 12px 32px #00000055; --overlay: #03080dcc;
+  --warm-bg: #382a27; --warm-line: #765247; --warm-text: #f3b49e;
+  --cool-bg: #222e46; --cool-line: #56688f; --cool-text: #abc5ff;
+  --gold-bg: #352f20; --gold-line: #78663b; --gold-text: #edd18a;
+}
+
+:root:has([data-world-page="mundo-4"]), [data-world="mundo-4"] {
+  --ink: #13294b;
+  --muted: #445d7c;
+  --paper: #eaf1ff;
+  --surface: #f3f7ff;
+  --surface-soft: #dce8ff;
+  --surface-hover: #c9dcff;
+  --line: #94add6;
+  --accent: #174bc4;
+  --accent-hover: #113997;
+  --on-accent: #ffffff;
+  --accent-text: #1945a6;
+  --accent-soft: #d7e5ff;
+}
+
+:root[data-theme="dark"]:has([data-world-page="mundo-4"]), [data-theme="dark"] [data-world="mundo-4"] {
+  --ink: #e5efff;
+  --muted: #b2c7e8;
+  --paper: #0d1930;
+  --surface: #142541;
+  --surface-soft: #1c3357;
+  --surface-hover: #264776;
+  --line: #5275a6;
+  --accent: #84b3ff;
+  --accent-hover: #a4c7ff;
+  --on-accent: #0c244b;
+  --accent-text: #a8caff;
+  --accent-soft: #203c64;
+}
+
+:root:has([data-world-page="mundo-5"]), [data-world="mundo-5"] {
+  --ink: #401d22;
+  --muted: #78525b;
+  --paper: #fff0f0;
+  --surface: #fff7f6;
+  --surface-soft: #f9e0df;
+  --surface-hover: #f3cdcd;
+  --line: #d59c9f;
+  --accent: #b62035;
+  --accent-hover: #921629;
+  --on-accent: #ffffff;
+  --accent-text: #a41c30;
+  --accent-soft: #f9d9df;
+}
+
+:root[data-theme="dark"]:has([data-world-page="mundo-5"]), [data-theme="dark"] [data-world="mundo-5"] {
+  --ink: #ffe7e9;
+  --muted: #e0b6bd;
+  --paper: #240f15;
+  --surface: #351820;
+  --surface-soft: #45202a;
+  --surface-hover: #592b36;
+  --line: #a36573;
+  --accent: #fb8b9e;
+  --accent-hover: #ffb0bd;
+  --on-accent: #3b0b16;
+  --accent-text: #ffb0bd;
+  --accent-soft: #562531;
+}
+
+:root:has([data-world-page="mundo-6"]), [data-world="mundo-6"] {
+  --ink: #352b13;
+  --muted: #6d5b2d;
+  --paper: #fff7df;
+  --surface: #fffaeb;
+  --surface-soft: #f8edc8;
+  --surface-hover: #f1dfa3;
+  --line: #c8ac60;
+  --accent: #ebbf32;
+  --accent-hover: #d6a720;
+  --on-accent: #30260b;
+  --accent-text: #715308;
+  --accent-soft: #f5e1a0;
+}
+
+:root[data-theme="dark"]:has([data-world-page="mundo-6"]), [data-theme="dark"] [data-world="mundo-6"] {
+  --ink: #fff0c6;
+  --muted: #d8c694;
+  --paper: #211b0e;
+  --surface: #302717;
+  --surface-soft: #40351c;
+  --surface-hover: #514424;
+  --line: #8a773e;
+  --accent: #edc44f;
+  --accent-hover: #f8d77f;
+  --on-accent: #2a2109;
+  --accent-text: #f3cf70;
+  --accent-soft: #4a3b18;
+}
+
+:root:has([data-world-page="mundo-7"]), [data-world="mundo-7"] {
+  --ink: #172c43;
+  --muted: #485d73;
+  --paper: #eaf0f7;
+  --surface: #f3f6fb;
+  --surface-soft: #dce5f0;
+  --surface-hover: #cbd9ea;
+  --line: #9aafc9;
+  --accent: #203e69;
+  --accent-hover: #152d51;
+  --on-accent: #ffffff;
+  --accent-text: #203e69;
+  --accent-soft: #d9e4f3;
+}
+
+:root[data-theme="dark"]:has([data-world-page="mundo-7"]), [data-theme="dark"] [data-world="mundo-7"] {
+  --ink: #e1ebf8;
+  --muted: #b3c3d8;
+  --paper: #0c1422;
+  --surface: #131f32;
+  --surface-soft: #1c2c43;
+  --surface-hover: #293c56;
+  --line: #536d8e;
+  --accent: #87a7d2;
+  --accent-hover: #aac4e8;
+  --on-accent: #101e34;
+  --accent-text: #b7cceb;
+  --accent-soft: #253b57;
+}
+
+/* Rebind aliases in each scope so cards can carry their own identity. */
+:root, [data-world] {
+  --deep: var(--ink); --coral: var(--accent-text); --blue: var(--accent-text);
+  --mint: var(--success-text); --gold: var(--gold-text);
+}
+[data-world] { color: var(--ink); }
+/* Keep secondary panels and notifications in the current world's palette. */
+[data-world-page], [data-world] {
+  --hero: var(--surface-soft);
+  --hero-text: var(--ink);
+  --hero-muted: var(--muted);
+}
+[data-world="mundo-4"], [data-world="mundo-5"], [data-world="mundo-6"], [data-world="mundo-7"] { --world-accent: var(--accent); }
+body, .page-shell, .task-page { background: var(--paper); color: var(--ink); }
+button, input, select, textarea { color: var(--ink); }
+.sidebar, .app-layout .sidebar, .metric-card, .world-card, .world-strip, .world-tab,
+.task-item, .question-card, .option-button, .answer-option, .auth-card, .block-card,
+.profile-summary, .profile-stats, .pill, .review-chip, .empty-review, .review-list-item,
+.path-board, .ranking-card, .locked-state, .empty-state { background: var(--surface); border-color: var(--line); color: var(--ink); }
+.topbar { background: var(--paper); }
+.eyebrow, .kicker, .metric-card small, .world-card small, .world-strip small,
+.topic-label small, .achievement-phrase, .lock, .node-arrow, .strip-arrow,
+.task-narrative, .lesson-copy { color: var(--muted); }
+.auth-tabs, .nav-link:hover, .nav-link.active, .nav-item:hover, .nav-item.active,
+.secondary-button, .avatar, .top-avatar, .rank-avatar, .node-icon { background: var(--surface-soft); color: var(--ink); }
+.auth-tabs button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.primary-button, .auth-form button { background: var(--accent); color: var(--on-accent); }
+.primary-button:hover, .auth-form button:hover { background: var(--accent-hover); }
+.secondary-button:hover, .theme-toggle:hover { background: var(--surface-hover); }
+.primary-button:disabled, .auth-form button:disabled, .secondary-button:disabled {
+  background: var(--disabled-bg); color: var(--disabled-text); transform: none; opacity: 1;
+}
+.auth-form input, .achievement-share input, textarea, select {
+  background: var(--surface); color: var(--ink); border-color: var(--line);
+}
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
+input:disabled { background: var(--disabled-bg); color: var(--disabled-text); }
+input:-webkit-autofill { -webkit-box-shadow: 0 0 0 1000px var(--surface) inset; -webkit-text-fill-color: var(--ink); }
+.auth-screen { background: radial-gradient(circle at top right, var(--accent-soft), transparent 48%), var(--paper); }
+.auth-card, .achievement-card.unlocked { box-shadow: var(--shadow); }
+.highlight-panel, .continue-card, .review-hero, .toast { background: var(--hero); color: var(--hero-text); }
+.highlight-panel .meta, .review-hero p, .continue-card .kicker, .lesson-context, .lesson-number { color: var(--hero-muted); }
+.brand-mark, .profile-avatar, .loading-mark { background: var(--accent); color: var(--on-accent); }
+.quote-box, .quote-card, .daily-card, .metric-card.golden { background: var(--gold-bg); border-color: var(--gold-line); }
+.quote-box p, .quote-box .mark, .quote-card p, .quote-card small, .quote-mark, .daily-card small { color: var(--gold-text); }
+.metric-card.warm { background: var(--warm-bg); border-color: var(--warm-line); }
+.metric-card.calm { background: var(--cool-bg); border-color: var(--cool-line); }
+.metric-card.calm .icon { color: var(--cool-text); }
+.metric-card.golden .icon { color: var(--gold-text); }
+.progress-bar, .progress-rail, .strip-progress, .level-bar, .lesson-progress-wide { background: var(--surface-hover); }
+.progress-bar span, .progress-rail span, .strip-progress span, .lesson-progress-wide span { background: var(--accent); }
+.metric-card.calm .progress-bar span { background: var(--cool-text); }
+.metric-card.golden .progress-bar span { background: var(--gold-text); }
+.keybox, .fact-box { background: var(--surface-soft); border: 1px solid var(--line); }
+.keybox h3, .fact-box strong, .fact-box p { color: var(--accent-text); }
+.kpis span { background: var(--surface); color: var(--accent-text); border: 1px solid var(--line); }
+.world-card .world-icon, .world-strip .world-strip-icon, .world-tab > span, .world-icon-large,
+.review-list-icon, .review-chip > span, .empty-review > span { background: var(--accent-soft); color: var(--accent-text); }
+[data-world].world-card .world-icon { background: var(--accent-soft); color: var(--accent-text); }
+.world-card:hover, .task-item:hover, .world-strip:hover, .review-list-item:hover { border-color: var(--accent); background: var(--surface-hover); }
+.world-card.selected { box-shadow: inset 4px 0 var(--accent); border-color: var(--accent); }
+.world-card.locked, .locked-strip, .locked-node { opacity: 1; border-style: dashed; }
+.world-card.locked .lock { color: var(--muted); }
+.dot { background: var(--world-accent, var(--success-text)); }
+.dot.pending { background: var(--surface-hover); border: 1px solid var(--line); }
+.option-button:not(:disabled):hover, .option-button.selected, .answer-option:hover, .answer-option.selected {
+  background: var(--accent-soft); color: var(--ink); border-color: var(--accent);
+}
+.option-button.correct, .answer-option.right { background: var(--success-bg); color: var(--success-text); border-color: var(--success-line); }
+.option-button.wrong, .answer-option.wrong { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-line); }
+.feedback-box.correct, .feedback-right { background: var(--success-bg); color: var(--success-text); }
+.feedback-box.incorrect, .feedback-wrong { background: var(--danger-bg); color: var(--danger-text); }
+.option-button:disabled { opacity: 1; cursor: default; }
+.option-button:disabled:not(.correct):not(.wrong) { background: var(--surface-soft); color: var(--muted); }
+.achievement-card { background: linear-gradient(160deg, var(--surface), var(--surface-soft)); border-color: var(--line); }
+.achievement-state { background: var(--accent-soft); color: var(--accent-text); }
+.is-locked .achievement-state { background: var(--surface-soft); color: var(--muted); }
+.achievement-progress progress { accent-color: var(--world-accent, var(--accent)); }
+.achievement-progress progress::-webkit-progress-bar { background: var(--surface-hover); border-radius: 9px; }
+.achievement-progress progress::-webkit-progress-value { background: var(--world-accent, var(--accent)); border-radius: 9px; }
+.achievement-progress progress::-moz-progress-bar { background: var(--world-accent, var(--accent)); }
+.toast { box-shadow: var(--shadow); }
+/* Match the specificity of legacy component styles as well as their states. */
+.highlight-panel .task-progress, .lesson-progress { background: var(--surface-hover); }
+.highlight-panel .task-progress span, .lesson-progress span { background: var(--accent); }
+.continue-card .primary-button { background: var(--accent); color: var(--on-accent); }
+.continue-card .primary-button:hover { background: var(--accent-hover); }
+.world-strip:is(.coral, .mint, .gold) .world-strip-icon,
+.world-tab:is(.coral, .mint, .gold) > span,
+.world-icon-large:is(.coral, .mint, .gold), .nav-item b {
+  background: var(--accent-soft); color: var(--accent-text);
+}
+.lesson-node { background: var(--surface); color: var(--ink); }
+.lesson-nodes { border-color: var(--line); }
+.lesson-node:not(:disabled):hover, .review-chip:hover { background: var(--surface-hover); border-color: var(--accent); }
+.lesson-node.done, .done .node-icon { background: var(--success-bg); color: var(--success-text); border-color: var(--success-line); }
+.option-marker { border-color: var(--line); color: var(--on-accent); }
+.selected .option-marker { background: var(--accent); border-color: var(--accent); }
+.right .option-marker, .feedback-right > span { background: var(--success-text); color: var(--success-bg); border-color: var(--success-line); }
+.feedback-wrong > span { background: var(--danger-text); color: var(--danger-bg); }
+.feedback small { color: inherit; }
+.achievement { background: var(--surface); opacity: 1; }
+.achievement.unlocked, .ranking-row.my-rank { background: var(--gold-bg); border-color: var(--gold-line); }
+.achievement > span, .rank-position, .mini-profile > span, .review-list-item > span:last-child { color: var(--muted); }
+.ranking-head { background: var(--hero); color: var(--hero-text); }
+.ranking-head small { color: var(--hero-muted); }
+.ranking-head > span, .review-hero > span { color: var(--hero-text); }
+.sun { background: var(--gold-bg); color: var(--gold-text); }
+.back-button:hover { color: var(--accent-text); }
+:where(button, a, input, select, textarea):focus-visible, .nav-link:focus-visible, .achievement-share :focus-visible {
+  outline: 3px solid var(--accent-text); outline-offset: 4px;
+}
+.theme-toggle {
+  min-height: 44px; padding: 9px 13px; flex-shrink: 0; border: 1px solid var(--line);
+  border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 700;
+}
+.theme-light, .theme-dark { align-items: center; gap: 7px; }
+.theme-light { display: inline-flex; } .theme-dark { display: none; }
+[data-theme="dark"] .theme-light { display: none; } [data-theme="dark"] .theme-dark { display: inline-flex; }
+.auth-header, .lesson-theme-header { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+.topbar-right { align-items: center; }
+.task-header > .theme-toggle { order: 5; margin-left: auto; }
+.public-achievement .lesson-theme-header { margin-bottom: 18px; }
+@media (prefers-reduced-motion: no-preference) { .theme-toggle { transition: background-color .15s, border-color .15s; } }

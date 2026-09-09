@@ -4,7 +4,7 @@ export function AchievementMedal({ achievement }: { achievement: Achievement }) 
   const gradient = `gold-${achievement.worldId}`;
   return <svg className="achievement-medal" viewBox="0 0 160 180" role="img" aria-label={`Medalha dourada: ${achievement.title}`}>
     <defs><linearGradient id={gradient} x1="0" y1="0" x2="1" y2="1"><stop stopColor="#fff1b1"/><stop offset=".4" stopColor="#e9bf56"/><stop offset=".7" stopColor="#b97a20"/><stop offset="1" stopColor="#ffe69a"/></linearGradient></defs>
-    <path d="M40 102 30 170 57 154 75 174 82 108M80 108 87 174 106 154 133 170 119 101" fill={achievement.color}/>
+    <path d="M40 102 30 170 57 154 75 174 82 108M80 108 87 174 106 154 133 170 119 101" fill={`var(--world-accent, ${achievement.color})`}/>
     <path d="m47 121-8 35 17-10 12 13 6-35m14 0 6 35 12-13 17 10-8-35" fill="none" stroke="#ffffff55" strokeWidth="2"/>
     <path d="m80 8 15 7 16 1 10 13 14 8 3 16 8 15-5 16 1 16-12 11-7 15-16 4-14 9-16-5-16 1-12-12-14-7-4-16-9-14 5-16-1-16 12-11 7-15 16-4Z" fill={`url(#${gradient})`}/>
     <circle cx="80" cy="75" r="49" fill="#fff3c4" stroke="#a97626" strokeWidth="2"/>
