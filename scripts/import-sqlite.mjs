@@ -42,12 +42,23 @@ try {
         assert.ok(data[field] === 0 || data[field] === 1, `Booleano inválido: ${table}.${field}`);
         data[field] = Boolean(data[field]);
       }
+      if (table === "User") data.emailVerifiedAt = null;
       return data;
     }),
   }));
+  const answers = batches.find(batch => batch.model === 'answerAttempt');
+  const originalAnswers = answers.rows.map(row => ({ id: row.id, record: JSON.parse(JSON.stringify(row)) }));
+  const ordered = [...answers.rows].sort((a,b) => a.answeredAt - b.answeredAt || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  answers.rows = [...new Map(ordered.map(row => [JSON.stringify([row.taskProgressId,row.questionId]), row])).values()];
+  for (const progress of batches.find(batch => batch.model === 'taskProgress').rows) {
+    const current = answers.rows.filter(answer => answer.taskProgressId === progress.id);
+    progress.acertos = current.filter(answer => answer.isCorrect).length;
+    progress.erros = current.filter(answer => !answer.isCorrect).length;
+  }
+  batches.push({ table: 'AnswerArchive', model: 'answerArchive', key: 'id', rows: originalAnswers });
   await prisma.$transaction(async tx => {
     // Require an empty target; an exact re-run is allowed without writing anything.
-    await tx.$executeRawUnsafe('LOCK TABLE "User", "TaskProgress", "AnswerAttempt", "AchievementShare" IN ACCESS EXCLUSIVE MODE');
+    await tx.$executeRawUnsafe('LOCK TABLE "User", "TaskProgress", "AnswerAttempt", "AchievementShare", "AnswerArchive" IN ACCESS EXCLUSIVE MODE');
     const counts = await Promise.all(batches.map(batch => tx[batch.model].count()));
     const empty = counts.every(count => count === 0);
     if (empty) {
@@ -58,9 +69,12 @@ try {
       }
     }
     for (const batch of batches) {
-      const actual = await tx[batch.model].findMany({ orderBy: { [batch.key]: 'asc' } });
+      const records = await tx[batch.model].findMany({ orderBy: { [batch.key]: 'asc' } });
+      const columns = Object.keys(batch.rows[0] ?? {});
+      const actual = records.map(record => Object.fromEntries(columns.map(key => [key, record[key]])));
       // Avoid printing records, hashes or personal information on failure.
-      const canonical = rows => JSON.stringify([...rows].sort((a, b) => a[batch.key] < b[batch.key] ? -1 : a[batch.key] > b[batch.key] ? 1 : 0).map(row => Object.fromEntries(Object.keys(row).sort().map(key => [key, row[key]]))));
+      const normalize = value => value instanceof Date ? value.toISOString() : Array.isArray(value) ? value.map(normalize) : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(key => [key, normalize(value[key])])) : value;
+      const canonical = rows => JSON.stringify(normalize([...rows].sort((a,b) => a[batch.key] < b[batch.key] ? -1 : a[batch.key] > b[batch.key] ? 1 : 0)));
       if (canonical(actual) !== canonical(batch.rows)) throw new Error(`Verificação divergente em ${batch.table}. Destino deve estar vazio ou idêntico à origem; nenhuma alteração foi confirmada.`);
     }
     console.log(empty ? 'Importação e comparação integral concluídas.' : 'Destino já idêntico; nenhuma escrita necessária.');

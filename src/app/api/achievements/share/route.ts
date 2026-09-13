@@ -1,18 +1,31 @@
-import { NextResponse } from 'next/server';
-import { achievements, isAchievementUnlocked } from '@/lib/achievements';
-import { getSessionPayload } from '@/lib/storage';
+import { achievements } from '@/lib/achievements';
+import { getCurrentUser, worldCompleted } from '@/lib/storage';
 import { prisma } from '@/lib/prisma';
-
-export async function POST(request: Request) {
-  const session = await getSessionPayload();
-  if (!session.user) return NextResponse.json({ error: 'Entre na sua conta para compartilhar.' }, { status: 401 });
-  const body = await request.json().catch(() => null);
-  const achievement = achievements.find((item) => item.worldId === body?.worldId);
-  if (!achievement) return NextResponse.json({ error: 'Conquista não encontrada.' }, { status: 404 });
-  if (!isAchievementUnlocked(achievement.worldId, session.progress)) return NextResponse.json({ error: 'Conclua este mundo para compartilhar a conquista.' }, { status: 403 });
-  const share = await prisma.achievementShare.upsert({
-    where: { userId_worldId: { userId: session.user.id, worldId: achievement.worldId } },
-    create: { userId: session.user.id, worldId: achievement.worldId }, update: {},
-  });
-  return NextResponse.json({ path: `/conquistas/${share.token}` });
+import { HttpError, errorResponse, json } from '@/lib/errors';
+import { validateMutation, readJson, fields, textField } from '@/lib/request-security';
+import { limit, clientKey } from '@/lib/rate-limit';
+async function mutate(request: Request, revoke: boolean) {
+  try {
+    validateMutation(request);
+    await limit('share-ip', clientKey(request), 60, 60);
+    const user = await getCurrentUser();
+    if (!user) throw new HttpError(401, 'Entre na sua conta para compartilhar.');
+    await limit('share-user', user.id, 10, 60);
+    const body = await readJson(request, 2048);
+    fields(body, ['worldId']);
+    const worldId = textField(body.worldId, 64);
+    if (!achievements.some(item => item.worldId === worldId)) throw new HttpError(404, 'Conquista não encontrada.');
+    if (revoke) {
+      await prisma.achievementShare.deleteMany({ where: { userId: user.id, worldId } });
+      return json({ ok: true });
+    }
+    if (!await worldCompleted(user.id, worldId)) throw new HttpError(403, 'Conclua este mundo para compartilhar a conquista.');
+    const share = await prisma.achievementShare.upsert({
+      where: { userId_worldId: { userId: user.id, worldId } },
+      create: { userId: user.id, worldId }, update: {},
+    });
+    return json({ path: '/conquistas/' + share.token });
+  } catch (error) { return errorResponse(error); }
 }
+export const POST = (request: Request) => mutate(request, false);
+export const DELETE = (request: Request) => mutate(request, true);

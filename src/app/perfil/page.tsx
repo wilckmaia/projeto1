@@ -1,3 +1,4 @@
+import { prisma } from '@/lib/prisma';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -13,6 +14,7 @@ export const metadata = { title: 'Meu perfil e conquistas | Politika' };
 export default async function ProfilePage() {
   const { user, progress } = await getSessionPayload();
   if (!user) redirect('/');
+  const shares = await prisma.achievementShare.findMany({ where: { userId: user.id }, select: { worldId: true, token: true } });
   const unlockedCount = achievements.filter((item) => isAchievementUnlocked(item.worldId, progress)).length;
   return <div className="page-shell"><div className="app-layout">
     <aside className="sidebar">
@@ -37,7 +39,7 @@ export default async function ProfilePage() {
           <div className="eyebrow">Mundo {achievement.number} · {worlds.find((world) => world.id === achievement.worldId)?.name}</div>
           <h3>{achievement.title}</h3><p className="achievement-phrase">{achievement.phrase}</p>
           <div className="achievement-progress"><span>{summary.completed}/{summary.total} tarefas concluídas</span><progress max={summary.total} value={summary.completed} aria-label={`Progresso da conquista ${achievement.number}`}/></div>
-          {unlocked ? <ShareAchievement worldId={achievement.worldId}/> : <p className="achievement-requirement">Conclua o Mundo {achievement.number} para desbloquear esta medalha e seu link público.</p>}
+          {unlocked ? <ShareAchievement worldId={achievement.worldId} initialPath={shares.find(share => share.worldId === achievement.worldId) ? `/conquistas/${shares.find(share => share.worldId === achievement.worldId)!.token}` : undefined}/> : <p className="achievement-requirement">Conclua o Mundo {achievement.number} para desbloquear esta medalha e seu link público.</p>}
         </article>;
       })}</div>
     </main>

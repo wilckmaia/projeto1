@@ -6,22 +6,28 @@
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "lint": "eslint src scripts next.config.ts eslint.config.mjs postcss.config.mjs prisma/seed.ts",
+    "typecheck": "next typegen && tsc --noEmit --incremental false",
     "postinstall": "prisma generate",
-    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "vercel-build": "node scripts/check-production.mjs && prisma generate && next build",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
     "db:import:sqlite": "node --env-file=.env scripts/import-sqlite.mjs",
-    "test:integration": "node --env-file=.env scripts/check-achievements.mjs"
+    "test:integration": "node scripts/run-security-tests.mjs",
+    "test:unit": "node scripts/security-unit.mjs",
+    "security:audit": "npm audit",
+    "catalog:generate": "node scripts/generate-catalog.mjs",
+    "db:harden:local": "node scripts/harden-local-postgres.mjs"
   },
   "dependencies": {
-    "@prisma/client": "^6.16.2",
+    "@prisma/client": "6.19.3",
     "bcryptjs": "^3.0.3",
     "next": "^16.3.4",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "server-only": "0.0.1",
+    "svix": "2.5.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -29,12 +35,17 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.1.6",
-    "prisma": "^6.16.2",
+    "eslint-config-next": "16.3.4",
+    "prisma": "6.19.3",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
   "engines": {
     "node": "24.x"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.0"
+    }
   }
 }

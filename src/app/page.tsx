@@ -1,9 +1,11 @@
 'use client';
 
+import { AuthForm } from '@/components/AuthForm';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { worlds } from '@/lib/data';
+import { useRouter } from 'next/navigation';
+import { worlds } from '@/lib/catalog';
 import { getWorldStatus, isWorldUnlocked, type UserProgress } from '@/lib/progress';
 
 type SessionUser = { id: string; name: string };
@@ -24,20 +26,20 @@ const worldMeta: Record<string, { color: string; label: string }> = {
 };
 
 export default function HomePage() {
+  const router = useRouter();
   const [session, setSession] = useState<SessionData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [block, setBlock] = useState<BlockState | null>(null);
 
   const loadSession = async () => {
-    const response = await fetch('/api/session', { method: 'GET' });
-    const data = await response.json();
-    setSession(data);
-    setLoading(false);
+    try {
+      const response = await fetch('/api/session', { method: 'GET' });
+      const data = await response.json();
+      if (!response.ok) { setError(data.error ?? 'Falha ao carregar sua conta.'); return; }
+      setSession(data); setError('');
+    } catch { setError('Falha de conexao. Tente novamente.'); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => {
@@ -45,29 +47,13 @@ export default function HomePage() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  const submitAuth = async () => {
-    const response = await fetch('/api/session', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: authMode, name, email, password }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      setError(data.error ?? 'Não foi possível criar o usuário.');
-      return;
-    }
-
-    setError('');
-    setName('');
-    setEmail('');
-    setPassword('');
-    await loadSession();
-  };
-
   const logout = async () => {
-    await fetch('/api/session', { method: 'DELETE' });
-    await loadSession();
+    try {
+      const response = await fetch('/api/session', { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+      if (!response.ok) { setError('Não foi possível sair. Tente novamente.'); return; }
+      await loadSession();
+      router.refresh();
+    } catch { setError('Não foi possível sair. Tente novamente.'); }
   };
 
   if (loading) {
@@ -83,27 +69,7 @@ export default function HomePage() {
   }
 
   if (!session?.user) {
-    return (
-      <main className="auth-screen">
-        <div className="auth-card">
-          <header className="auth-header"><ThemeToggle /></header>
-          <div className="eyebrow">Usuário</div>
-          <h1>{authMode === 'login' ? 'Entrar na sua trilha' : 'Criar sua conta'}</h1>
-          <p>Seu progresso fica vinculado à conta e continua disponível quando você voltar.</p>
-          <div className="auth-tabs" role="tablist" aria-label="Acesso">
-            <button type="button" className={authMode === 'login' ? 'active' : ''} onClick={() => { setAuthMode('login'); setError(''); }}>Entrar</button>
-            <button type="button" className={authMode === 'register' ? 'active' : ''} onClick={() => { setAuthMode('register'); setError(''); }}>Criar conta</button>
-          </div>
-          <div className="auth-form">
-            {authMode === 'register' && <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Seu nome" aria-label="Seu nome" />}
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Seu e-mail" aria-label="Seu e-mail" autoComplete="email" />
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Sua senha (mínimo 6 caracteres)" aria-label="Sua senha" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} />
-            {error && <p style={{ color: 'var(--danger-text)', margin: 0 }}>{error}</p>}
-            <button type="button" onClick={submitAuth}>{authMode === 'login' ? 'Entrar' : 'Criar conta'}</button>
-          </div>
-        </div>
-      </main>
-    );
+    return <AuthForm externalError={error} onAuthenticated={async () => { await loadSession(); router.refresh(); }} />;
   }
 
   const progress = session.progress;
@@ -116,7 +82,7 @@ export default function HomePage() {
     if (!world) return;
 
     if (isWorldUnlocked(worldId, progress)) {
-      window.location.assign(`/${worldId}`);
+      router.push(`/${worldId}`);
       return;
     }
 
@@ -145,7 +111,7 @@ export default function HomePage() {
             <button className="nav-link active" type="button">
               <span>⌂</span> Visão geral
             </button>
-            <button className="nav-link" type="button" onClick={() => window.location.assign('/mundo-1')}>
+            <button className="nav-link" type="button" onClick={() => router.push('/mundo-1')}>
               <span>◈</span> Trilhas
             </button>
           </nav>
@@ -163,6 +129,7 @@ export default function HomePage() {
         </aside>
 
         <main className="main-panel">
+          {error && <p role="alert">{error}</p>}
           <header className="topbar">
             <div>
               <div className="eyebrow">Mapa de aprendizagem</div>
@@ -202,7 +169,7 @@ export default function HomePage() {
               <h2>{worlds[0].tasks[0].title}</h2>
               <div className="meta">Mundo 1 · Fundamentos</div>
               <div className="task-progress progress-bar"><span style={{ width: `${overall}%` }} /></div>
-              <button className="primary-button" type="button" onClick={() => window.location.assign('/mundo-1/m1-t1')}>Continuar tarefa →</button>
+              <button className="primary-button" type="button" onClick={() => router.push('/mundo-1/m1-t1')}>Continuar tarefa →</button>
             </section>
 
             <aside className="quote-box">
@@ -258,7 +225,7 @@ export default function HomePage() {
                   type="button"
                   onClick={() => {
                     setBlock(null);
-                    window.location.assign(worlds.find((world) => world.id === block.worldId)?.prerequisiteWorldIds ? `/${worlds.slice(0, 3).find((world) => world.tasks.some((task) => !progress.completedTasks.includes(task.id)))?.id ?? 'mundo-1'}` : block.worldId === 'mundo-2' ? '/mundo-1' : '/mundo-2');
+                    router.push(worlds.find((world) => world.id === block.worldId)?.prerequisiteWorldIds ? `/${worlds.slice(0, 3).find((world) => world.tasks.some((task) => !progress.completedTasks.includes(task.id)))?.id ?? 'mundo-1'}` : block.worldId === 'mundo-2' ? '/mundo-1' : '/mundo-2');
                   }}
                 >
                   Continuar atividades
@@ -276,7 +243,7 @@ export default function HomePage() {
               world.tasks.map((task) => {
                 const done = progress.completedTasks.includes(task.id);
                 return (
-                  <button data-world={world.id} key={task.id} type="button" className="task-item" onClick={() => window.location.assign(`/${world.id}/${task.id}`)}>
+                  <button data-world={world.id} key={task.id} type="button" className="task-item" onClick={() => router.push(`/${world.id}/${task.id}`)}>
                     <span className={`dot ${done ? '' : 'pending'}`} />
                     <div className="meta">
                       <strong>{task.title}</strong>

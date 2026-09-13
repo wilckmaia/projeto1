@@ -9,3 +9,10 @@ node_modules/
 prisma/dev.db
 prisma/dev.db-journal
 .data/
+
+.security-test/
+.vercel/
+cookies.txt
+headers.txt
+out.txt
+*.log

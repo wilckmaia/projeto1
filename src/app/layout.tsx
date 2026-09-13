@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import type { Metadata } from "next";
 import "./globals.css";
 import "./themes.css";
@@ -8,6 +9,7 @@ export const metadata: Metadata = {
   description: "Uma trilha gamificada e apartidária para estudar política brasileira e ciência política.",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="pt-BR" suppressHydrationWarning><head><script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} /></head><body>{children}</body></html>;
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+  return <html lang="pt-BR" suppressHydrationWarning><head><script nonce={nonce} dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} /></head><body>{children}</body></html>;
 }

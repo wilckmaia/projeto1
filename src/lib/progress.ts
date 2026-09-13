@@ -1,10 +1,11 @@
-import { worlds } from "@/lib/data";
+import { worlds } from "@/lib/catalog";
 
 export type ProgressAnswer = {
   questionId: string;
   selectedIndex: number;
   correctIndex: number;
   isCorrect: boolean;
+  explanation?: string;
 };
 
 export type TaskProgress = {
@@ -88,7 +89,7 @@ export const buildTaskCompletion = (
   const acertos = taskAnswers.filter((answer) => answer.isCorrect).length;
   const erros = taskAnswers.filter((answer) => !answer.isCorrect).length;
   const task = worlds.find((world) => world.id === worldId)?.tasks.find((item) => item.id === taskId);
-  const completed = Boolean(task && taskAnswers.length === task.questions.length);
+  const completed = Boolean(task && taskAnswers.length === task.questionCount);
   const taskProgress: TaskProgress = {
     taskId,
     worldId,

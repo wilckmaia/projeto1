@@ -3,16 +3,17 @@ import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
 function load(path, dependencies = {}) {
-  const source = ts.transpileModule(readFileSync(path, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const source = ts.transpileModule(readFileSync(path, 'utf8'), { compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const loaded = { exports: {} };
   new Function('exports', 'module', 'require', source)(loaded.exports, loaded, name => {
+    if (name === 'server-only') return {};
     assert.ok(name in dependencies, `Unexpected dependency: ${name}`);
     return dependencies[name];
   });
   return loaded.exports;
 }
 const data = load('src/lib/data.ts');
-const progress = load('src/lib/progress.ts', { '@/lib/data': data });
+const progress = load('src/lib/progress.ts', { '@/lib/catalog': load('src/lib/catalog.ts') });
 const achievements = load('src/lib/achievements.ts', { '@/lib/progress': progress });
 const world = data.getWorldById(process.argv[2] ?? 'mundo-4');
 const prerequisites = data.worlds.slice(0, 3).flatMap(item => item.tasks.map(task => task.id));
@@ -59,6 +60,7 @@ const { TaskExperience } = load('src/components/TaskExperience.tsx', {
   react: { useState: hook, useRef: initial => hook({ current: initial })[0], useMemo: fn => fn() },
   'react/jsx-runtime': { jsx, jsxs: jsx },
   'next/link': { default: 'a' },
+  'next/navigation': { useRouter: () => ({ push: href => { destination = href; } }) },
 });
 function nodes(tree) {
   if (!tree || typeof tree !== 'object') return [];
@@ -73,11 +75,11 @@ globalThis.window = { location: { assign: href => { destination = href; } } };
 try {
   for (const task of world.tasks) {
     state = [];
-    const props = { task: { ...task, worldId: world.id, worldName: world.name }, worldId: world.id, nextHref: `/${world.id}/${world.tasks[world.tasks.indexOf(task) + 1]?.id ?? ''}` };
+    const props = { task: { ...task, questions: task.questions.map(({prompt,options}) => ({prompt,options})), worldId: world.id, worldName: world.name }, worldId: world.id, nextHref: `/${world.id}/${world.tasks[world.tasks.indexOf(task) + 1]?.id ?? ''}` };
     const render = () => { cursor = 0; return nodes(TaskExperience(props)); };
     globalThis.fetch = async (_url, options) => {
       const body = JSON.parse(options.body);
-      saved = progress.buildTaskCompletion(task.id, world.id, body.answers, new Date().toISOString(), saved);
+      saved = progress.buildTaskCompletion(task.id, world.id, body.answers.map((answer,i) => ({ ...answer, correctIndex: task.questions[i].correctIndex, isCorrect: answer.selectedIndex === task.questions[i].correctIndex, explanation: task.questions[i].explanation })), new Date().toISOString(), saved);
       return { ok: true, json: async () => ({ ok: true, progress: saved }) };
     };
     for (let index = 0; index < task.questions.length; index++) {

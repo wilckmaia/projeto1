@@ -1,5 +1,8 @@
+import { assertTestDatabase } from './test-safety.mjs';
+import { createHash } from 'node:crypto';
+assertTestDatabase();
 // Real Chromium checks, isolated browser profile and temporary account.
-// Run after building: node --env-file=.env scripts/check-themes.mjs
+// Run through npm run test:integration -- --browser only.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
@@ -8,13 +11,22 @@ import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import ts from 'typescript';
+import { createServer } from 'node:http';
+import { testAuthBrowser } from './test-auth-browser.mjs';
 
 const base = 'http://localhost:3198';
 const output = resolve('.data/theme-check');
 const profile = resolve(tmpdir(), `politika-theme-browser-${randomUUID()}`);
 await mkdir(output, { recursive: true });
 const prisma = new PrismaClient();
-const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-p', '3198'], { windowsHide: true, stdio: 'ignore' });
+const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '-H', '127.0.0.1', '-p', '3198'], { windowsHide: true, stdio: 'ignore', env: { ...process.env, APP_ORIGIN: base } });
+const mail = [];
+const mailServer = createServer(async (request, response) => {
+  let body = ''; for await (const chunk of request) body += chunk;
+  mail.push(JSON.parse(body));
+  response.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ id: randomUUID() }));
+});
+await new Promise(resolve => mailServer.listen(Number(new URL(process.env.EMAIL_TEST_ENDPOINT).port), '127.0.0.1', resolve));
 let chrome, socket, userId;
 let sequence = 0;
 const pending = new Map();
@@ -46,7 +58,7 @@ async function waitFor(expression) {
 }
 async function navigate(path) {
   await call('Page.navigate', { url: base + path });
-  await waitFor(`location.pathname === ${JSON.stringify(path)} && document.readyState === 'complete' && !!document.querySelector('.theme-toggle')`);
+  await waitFor(`location.pathname === ${JSON.stringify(new URL(base + path).pathname)} && document.readyState === 'complete' && !!document.querySelector('.theme-toggle')`);
   await pause(400);
 }
 async function launch() {
@@ -76,6 +88,8 @@ async function screenshot(name) {
   await writeFile(resolve(output, `${name}.png`), Buffer.from(shot.data, 'base64'));
 }
 async function contrast(selectors) {
+  // Sample settled styles after the existing 200ms state/color transitions.
+  await pause(250);
   const values = await evaluate(`(${function(selectors) {
     return selectors.flatMap(selector => [...document.querySelectorAll(selector)].filter(el => el.getClientRects().length).map(el => {
       const style = getComputedStyle(el);
@@ -98,7 +112,7 @@ async function contrast(selectors) {
   }
 }
 async function post(path, body, cookie) {
-  return fetch(base + path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) }, body: JSON.stringify(body) });
+  return fetch(base + path, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) }, body: JSON.stringify(body) });
 }
 try {
   await ready(base); await launch();
@@ -115,14 +129,17 @@ try {
   await call('Browser.close'); await pause(1500); await launch(); await navigate('/');
   assert.equal(await evaluate('document.documentElement.dataset.theme'), 'dark');
   console.log('PASS: theme toggle, reload and browser reopening');
+  await testAuthBrowser({ evaluate, waitFor, navigate, prisma, mail, screenshot });
 
-  const registration = await post('/api/session', { action: 'register', name: 'Teste visual', email: `theme-${randomUUID()}@example.test`, password: randomUUID() });
-  assert.equal(registration.status, 200);
-  userId = (await registration.json()).user.id;
-  const cookie = registration.headers.get('set-cookie').split(';')[0];
+  const user = await prisma.user.create({ data: { id: 'visual-' + randomUUID(), name: 'Teste visual', email: randomUUID() + '@example.test', passwordHash: 'unused', emailVerifiedAt: new Date() } });
+  userId = user.id;
+  const token = Buffer.from(randomUUID()+randomUUID()).toString('base64url').slice(0,43);
+  await prisma.session.create({ data: { tokenHash: createHash('sha256').update(token).digest('hex'), userId, expiresAt: new Date(Date.now()+3600000) } });
+  const cookie = 'politika_user=' + token;
+  await prisma.rateLimit.deleteMany();
   await call('Network.setCookie', { name: cookie.split('=')[0], value: cookie.slice(cookie.indexOf('=') + 1), url: base, httpOnly: true, secure: true });
   const source = ts.transpileModule(await readFile('src/lib/data.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
-  const data = { exports: {} }; new Function('exports', 'module', source)(data.exports, data);
+  const data = { exports: {} }; new Function('exports', 'module', 'require', source)(data.exports, data, name => { assert.equal(name, 'server-only'); return {}; });
   for (const world of data.exports.worlds.slice(0, 3)) for (const task of world.tasks) {
     assert.equal((await post('/api/progress', { worldId: world.id, taskId: task.id, answers: task.questions.map((q, i) => ({ questionId: `${task.id}-${i}`, selectedIndex: q.correctIndex })) }, cookie)).status, 200);
   }
@@ -161,6 +178,7 @@ try {
 } finally {
   if (socket?.readyState === WebSocket.OPEN) { try { await call('Browser.close'); } catch {} socket.close(); }
   chrome?.kill(); server.kill();
+  await new Promise(resolve => mailServer.close(resolve));
   if (userId) await prisma.user.delete({ where: { id: userId } });
   await prisma.$disconnect();
 }

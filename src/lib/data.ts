@@ -1,3 +1,4 @@
+import 'server-only';
 export type Question = {
   prompt: string;
   options: string[];

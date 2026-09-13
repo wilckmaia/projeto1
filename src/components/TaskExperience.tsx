@@ -2,11 +2,14 @@
 
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import type { Task } from '@/lib/data';
+import type { ProgressAnswer } from '@/lib/progress';
+export type ClientTask = Omit<Task, 'questions'> & { worldId: string; worldName: string; questions: { prompt: string; options: string[] }[] };
 import type { TaskProgress } from '@/lib/progress';
 
 type Props = {
-  task: Task & { worldId: string; worldName: string };
+  task: ClientTask;
   worldId: string;
   nextHref: string;
   initialProgress?: TaskProgress;
@@ -18,12 +21,14 @@ const buildResult = (sel: number | undefined, correct: number) => {
 };
 
 export function TaskExperience({ task, worldId, nextHref, initialProgress }: Props) {
+  const router = useRouter();
   const saveInFlight = useRef(false);
   const restored = task.sequential ? Object.fromEntries((initialProgress?.answers ?? []).map((answer) => [Number(answer.questionId.slice(task.id.length + 1)), answer.selectedIndex])) : {};
   const [selected, setSelected] = useState<Record<number, number>>(restored);
   const [questionIndex, setQuestionIndex] = useState(Math.min(Object.keys(restored).length, task.questions.length - 1));
   const [submitted, setSubmitted] = useState(Boolean(task.sequential && initialProgress?.completed));
   const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState<ProgressAnswer[]>(initialProgress?.answers ?? []);
   const [toast, setToast] = useState('');
   const [achievementUnlocked, setAchievementUnlocked] = useState(false);
 
@@ -48,12 +53,9 @@ export function TaskExperience({ task, worldId, nextHref, initialProgress }: Pro
 
     const answers = task.questions.slice(0, task.sequential ? questionIndex + 1 : task.questions.length).map((question, questionIndex) => {
       const selectedIndex = selected[questionIndex];
-      const isCorrect = selectedIndex === question.correctIndex;
       return {
         questionId: `${task.id}-${questionIndex}`,
         selectedIndex,
-        correctIndex: question.correctIndex,
-        isCorrect,
       };
     });
 
@@ -74,6 +76,7 @@ export function TaskExperience({ task, worldId, nextHref, initialProgress }: Pro
         return;
       }
 
+      setFeedback(data.progress.taskProgress[task.id].answers);
       setSubmitted(true);
       setAchievementUnlocked(Boolean(data.progress?.completedWorlds?.includes(worldId)));
       setToast(data.message ?? 'Progresso salvo com sucesso.');
@@ -88,7 +91,7 @@ export function TaskExperience({ task, worldId, nextHref, initialProgress }: Pro
   return (
     <div className="task-body">
       <div className="task-header">
-        <button className="back-button" type="button" onClick={() => window.location.assign(`/${worldId}`)}>
+        <button className="back-button" type="button" onClick={() => router.push(`/${worldId}`)}>
           ← Voltar ao mundo
         </button>
         <div className="progress-rail">
@@ -118,7 +121,9 @@ export function TaskExperience({ task, worldId, nextHref, initialProgress }: Pro
       {task.questions.map((question, index) => {
         if (task.sequential && index !== questionIndex) return null;
         const currentSelection = selected[index];
-        const result = buildResult(currentSelection, question.correctIndex);
+        const answerFeedback = feedback.find(answer => answer.questionId === `${task.id}-${index}`);
+        const correctIndex = answerFeedback?.correctIndex ?? -1;
+        const result = buildResult(currentSelection, correctIndex);
 
         return (
           <div className="question-card" key={question.prompt}>
@@ -126,9 +131,9 @@ export function TaskExperience({ task, worldId, nextHref, initialProgress }: Pro
             <div className="option-list">
               {question.options.map((option, optionIndex) => {
                 const buttonClass = submitted
-                  ? optionIndex === question.correctIndex
+                  ? optionIndex === correctIndex
                     ? 'option-button correct'
-                    : currentSelection === optionIndex && currentSelection !== question.correctIndex
+                    : currentSelection === optionIndex && currentSelection !== correctIndex
                       ? 'option-button wrong'
                       : 'option-button'
                   : currentSelection === optionIndex
@@ -152,7 +157,7 @@ export function TaskExperience({ task, worldId, nextHref, initialProgress }: Pro
             {submitted && (
               <div className={`feedback-box ${result === 'correct' ? 'correct' : 'incorrect'}`}>
                 <strong>{result === 'correct' ? 'Correto' : 'Resposta discutida'}</strong>
-                {question.explanation}
+                {answerFeedback?.explanation}
               </div>
             )}
           </div>
@@ -166,7 +171,7 @@ export function TaskExperience({ task, worldId, nextHref, initialProgress }: Pro
               setQuestionIndex((current) => current + 1);
               setSubmitted(false);
               setToast('');
-            } else window.location.assign(nextHref);
+            } else router.push(nextHref);
           }}>
             Próxima
           </button>

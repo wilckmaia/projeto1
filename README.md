@@ -1,41 +1,46 @@
-﻿# Politika
+# Politika
 
-Plataforma educacional com cadastro, login, perfil, trilhas, progresso individual e conquistas compartilháveis. Next.js 16, Prisma 6, PostgreSQL e bcrypt.
+Plataforma educacional com cadastro sem confirmação obrigatória de e-mail, login, recuperação de senha, perfil, trilhas, progresso individual e conquistas compartilháveis. Next.js 16, Prisma 6, PostgreSQL e bcrypt.
 
 ## Configuração
 
-Requer Node.js 24.x e PostgreSQL. Consulte [o guia de migração, Neon e Vercel](docs/postgresql-vercel.md), incluindo valores das variáveis, transferência de dados e configuração do deploy.
+Requer Node.js 24.x e PostgreSQL. Use [.env.example](.env.example) e consulte [segurança e publicação](docs/security.md).
 
-Configure `.env` usando `.env.example`: `DATABASE_URL`, `DIRECT_URL` e `SESSION_SECRET`.
+Configure DATABASE_URL, DIRECT_URL, SESSION_SECRET, APP_ORIGIN, RESEND_API_KEY, EMAIL_FROM e RESEND_WEBHOOK_SECRET. Para envio de mensagens, o remetente/domínio deve estar verificado no Resend.
 
 ```bash
 npm ci
 npm run db:migrate
-# Apenas na primeira transferência, com SQLite parado e destino vazio:
-npm run db:import:sqlite
 npm run dev
 ```
 
-Abra http://localhost:3000. Uma instalação nova sem dados anteriores não precisa executar o importador.
+O comando de migration escreve no banco configurado: use o ambiente correto. Para migração única de SQLite, com origem parada e destino vazio, use npm run db:import:sqlite. Uma instalação nova não precisa importar dados.
 
-## Validação
+## Verificação
 
 ```bash
-npm run lint
 npm run typecheck
-npm run build
+npm run lint
+npm run test:unit
 npm run test:integration
+npm run security:audit
 ```
 
-O teste de integração usa PostgreSQL real, sobe o build na porta 3197 e remove as contas de teste ao terminar. Execute contra banco de desenvolvimento/homologação.
+O teste integrado cria seu próprio PostgreSQL com senha e acesso local. Não utiliza o banco remoto do .env. Exercita upgrade de migrations, build, autenticação, isolamento, concorrência, progresso e conquistas. Requer PostgreSQL 18 instalado; configure PG_BIN se necessário. Adicione -- --browser para incluir os testes Chromium (Chrome instalado).
+
+## Produção
+
+O build Vercel gera Prisma Client e compila Next.js. Migrations devem ser aplicadas explicitamente pelo processo de release antes da publicação, após backup e validação em homologação. Não use db push ou migrate reset em produção.
+
+Consulte [o checklist de publicação](docs/security.md) e [a configuração PostgreSQL/Vercel](docs/postgresql-vercel.md).
 
 ## Arquitetura
 
-- `prisma/schema.prisma`: User, TaskProgress, AnswerAttempt e AchievementShare.
-- `src/lib/prisma.ts`: cliente reutilizado por processo; pooling Neon na aplicação.
-- `src/lib/storage.ts`: autenticação bcrypt e persistência de progresso.
-- `src/lib/session.ts`: cookie HTTP-only assinado, válido por 30 dias.
-- `prisma/migrations`: histórico PostgreSQL aplicado por migrate deploy.
-- `scripts/import-sqlite.mjs`: ferramenta offline; SQLite não participa do runtime.
+- prisma/schema.prisma: usuários, sessões revogáveis, desafios de e-mail, progresso, respostas, compartilhamentos e quotas.
+- src/lib/auth.ts e session.ts: autenticação, confirmação/recuperação e cookies HTTP-only.
+- src/lib/storage.ts: persistência transacional e isolamento por conta.
+- src/lib/data.ts: conteúdo completo e gabaritos, somente no servidor.
+- src/lib/catalog.ts: metadados públicos. Execute npm run catalog:generate após mudar o catálogo.
+- scripts/import-sqlite.mjs: importação offline com preservação do histórico.
 
-O build Vercel gera Prisma Client, aplica migrations e compila Next.js. Não use db push ou migrate reset em produção. Layout, conteúdo e critérios de conclusão foram preservados.
+Fluxos de e-mail, limites e configuracao do Resend: [guia completo](docs/email-auth.md).
