@@ -7,6 +7,7 @@ import { once } from 'node:events';
 import { createRequire } from 'node:module';
 import ts from 'typescript';
 import { testAuthFlows } from './test-auth-flows.mjs';
+import { testPasswordReset } from './test-password-reset.mjs';
 import { PrismaClient } from '@prisma/client';
 import { assertTestDatabase } from './test-safety.mjs';
 assertTestDatabase();
@@ -162,6 +163,7 @@ try {
   const attempts=await Promise.allSettled(Array.from({length:20},()=>limiter.limit('concurrent-test','test',5,60)));
   assert.equal(attempts.filter(x=>x.status==='fulfilled').length,5,'atomic quota');
   await testAuthFlows({ prisma, base, post, current, getToken, mail, delivery, clearLimits, accounts });
+  await testPasswordReset({ prisma, base, post, current, mail, delivery, clearLimits, accounts });
   console.log('PASS: auth, optional email verification, CSRF, IDOR, replay/expiry, body validation, rate limits, legacy login and migration retention.');
 } finally {
   server.kill(); await new Promise(resolve=>server.exitCode!==null?resolve():server.once('exit',resolve));

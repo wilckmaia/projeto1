@@ -131,7 +131,7 @@ export async function testAuthFlows({ prisma, base, post, current, getToken, mai
   assert.equal((await prisma.user.findUniqueOrThrow({ where: { email: pending } })).passwordHash, oldHash);
   assert.equal((await current(cookie)).user.id, owner.id, 'removed flow cannot revoke sessions');
   assert.equal((await login(pending)).status, 200, 'password remains unchanged');
-  assert.equal((await fetch(base + '/recuperar-senha')).status, 404);
+  assert.equal((await fetch(base + '/recuperar-senha')).status, 200);
   await prisma.authChallenge.deleteMany({ where: { tokenHash: hash(oldToken) } });
   const noSignup = email();
   assert.deepEqual(await (await request(noSignup)).json(), generic);

@@ -1,4 +1,5 @@
 import 'server-only';
+import { Resend } from 'resend';
 import { HttpError } from './errors';
 import { appOrigin } from './request-security';
 export function emailConfiguration() {
@@ -10,8 +11,30 @@ export function emailConfiguration() {
       !['127.0.0.1', 'localhost'].includes(db.hostname) || !db.pathname.endsWith('_security_test')) throw new HttpError(503, 'Serviço temporariamente indisponível.');
     return { endpoint: test, key: 'local-test', from: 'test@example.test' };
   }
-  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) throw new HttpError(503, 'Confirmação por e-mail temporariamente indisponível.');
+  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM || /[\r\n]/.test(process.env.EMAIL_FROM) || !process.env.EMAIL_FROM.includes('@')) throw new HttpError(503, 'Serviço de e-mail temporariamente indisponível.');
   return { endpoint: 'https://api.resend.com/emails', key: process.env.RESEND_API_KEY, from: process.env.EMAIL_FROM };
+}
+
+export async function sendPasswordReset(email: string, token: string, deliveryId: string) {
+  const config = emailConfiguration();
+  // Keep the bearer credential out of server access logs, referrers and RSC payloads.
+  const link = appOrigin() + '/redefinir-senha#' + new URLSearchParams({ token });
+  const safeLink = link.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
+  const content = {
+    from: config.from, to: [email], subject: 'Redefinição de senha - Politika',
+    text: 'Olá,\n\nRecebemos uma solicitação para redefinir a senha da sua conta no Politika.\nClique no link abaixo para criar uma nova senha. Este link expira em 30 minutos.\nSe você não solicitou essa alteração, ignore este e-mail. Sua senha atual continuará funcionando.\nPor segurança, nunca compartilhe este link.\n\nEquipe Politika\n\n' + link,
+    html: `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:24px 12px;background:#f3f5f9;font-family:Arial,sans-serif;color:#17233a"><table role="presentation" style="width:100%;max-width:560px;margin:auto;background:#fff;border-radius:16px"><tr><td style="padding:32px"><p style="font-size:14px;font-weight:bold;letter-spacing:2px;color:#3452a0">POLITIKA</p><h1 style="font-size:26px">Redefina sua senha</h1><p>Olá,</p><p style="line-height:1.6">Recebemos uma solicitação para redefinir a senha da sua conta no Politika.</p><p>Clique no botão abaixo para criar uma nova senha:</p><p style="margin:32px 0"><a href="${safeLink}" style="display:inline-block;background:#3452a0;color:#fff;padding:16px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Redefinir minha senha</a></p><p><strong>Este link expira em 30 minutos.</strong></p><p style="line-height:1.6">Se você não solicitou essa alteração, ignore este e-mail. Sua senha atual continuará funcionando.</p><p>Por segurança, nunca compartilhe este link.</p><p>Equipe Politika</p><hr style="border:0;border-top:1px solid #e5e7eb"><p style="font-size:12px;line-height:1.6">Se o botão não funcionar, copie e cole este endereço no navegador:<br><a href="${safeLink}" style="word-break:break-all;color:#3452a0">${safeLink}</a></p></td></tr></table></body></html>`,
+  };
+  const resend = new Resend(config.key, process.env.EMAIL_TEST_ENDPOINT ? { baseUrl: config.endpoint } : undefined);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const options = { idempotencyKey: 'reset/' + deliveryId, signal: AbortSignal.timeout(10000) };
+      const { data, error } = await resend.emails.send(content, options);
+      if (!error && data?.id) return;
+    } catch { /* Never log provider bodies or bearer credentials. */ }
+    if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  throw new HttpError(503, 'Não foi possível enviar o e-mail agora.');
 }
 export async function sendConfirmation(email: string, token: string, deliveryId: string) {
   const config = emailConfiguration();

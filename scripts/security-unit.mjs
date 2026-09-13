@@ -12,7 +12,7 @@ function load(file, dependencies = {}) {
 }
 const errors = load('src/lib/errors.ts');
 const security = load('src/lib/request-security.ts', { './errors': errors });
-const password = load('src/lib/password.ts', { './errors': errors });
+const password = load('src/lib/password.ts', { './errors': errors, './password-policy': load('src/lib/password-policy.ts') });
 const data = load('src/lib/data.ts');
 const catalog = load('src/lib/catalog.ts');
 assert.deepEqual(catalog.worlds, data.worlds.map(({tasks,...world}) => ({...world,tasks:tasks.map(({id,title,questions})=>({id,title,questionCount:questions.length}))})), 'public catalog matches lesson metadata');

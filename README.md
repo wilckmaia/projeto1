@@ -37,7 +37,7 @@ Consulte [o checklist de publicação](docs/security.md) e [a configuração Pos
 ## Arquitetura
 
 - prisma/schema.prisma: usuários, sessões revogáveis, desafios de e-mail, progresso, respostas, compartilhamentos e quotas.
-- src/lib/auth.ts e session.ts: autenticação, confirmação/recuperação e cookies HTTP-only.
+- src/lib/auth.ts, password-reset.ts e session.ts: autenticação, confirmação/recuperação e cookies HTTP-only.
 - src/lib/storage.ts: persistência transacional e isolamento por conta.
 - src/lib/data.ts: conteúdo completo e gabaritos, somente no servidor.
 - src/lib/catalog.ts: metadados públicos. Execute npm run catalog:generate após mudar o catálogo.

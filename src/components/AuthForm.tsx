@@ -65,6 +65,7 @@ export function AuthForm({ initialMode = 'login', onAuthenticated, externalError
       {message && <p role="status" style={{ margin: 0 }}>{message}</p>}
       <button type="submit" disabled={busy || wait > 0}>{busy ? 'Aguarde…' : wait ? 'Tente novamente em ' + wait + 's' : label}</button>
       {isEmailOnly && <Link href="/">Voltar para entrar ou criar conta</Link>}
+      {mode === 'login' && <Link href="/recuperar-senha">Esqueci minha senha</Link>}
     </form>
   </div></main>;
 }
