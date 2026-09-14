@@ -54,3 +54,20 @@ A suíte integrada usa PostgreSQL temporário local, aplica todo o histórico de
 Os testes de recuperação cobrem conta existente/inexistente e resposta idêntica, normalização, token aleatório armazenado como hash, prazo, token inválido/expirado/usado, senhas fracas/diferentes, substituição de link, consumo concorrente/replay, revogação de sessões, login com senha nova e rejeição da antiga, falha de envio e rate limiting. O teste Chromium percorre formulários, visibilidade, erros, sucesso e login.
 
 Após publicar, faça uma solicitação para uma conta sua e confirme a entrega real na caixa de entrada e no painel do Resend. A entrega externa não é comprovada pelo capturador local.
+
+## Diagnóstico de falha em produção
+
+O código anterior já exigia ausência de `error` e presença de `data.id`, mas descartava o erro do SDK e as exceptions antes do log genérico. HTTP 202 confirma apenas o processamento agendado, não a aceitação pelo Resend. O SDK usa `RESEND_API_KEY` e `EMAIL_FROM`; o host de produção agora é fixado explicitamente em `https://api.resend.com`, impedindo override implícito por `RESEND_BASE_URL`. Não foi constatado esse override em produção.
+
+O evento `password_reset_delivery_failed` inclui `provider`, `errorName` (lista permitida), `errorMessage` (classificação em texto fixo), `statusCode` (ou null), `recipientPresent`, `senderFormatValid` e `testSender`. Não são registrados mensagens brutas do SDK, stack, headers, destinatários, remetentes, URLs ou credenciais. Mensagens desconhecidas recebem classificação genérica. Os campos adicionais podem ser retirados após concluir o diagnóstico.
+
+- `Resend test sender restriction`: `onboarding@resend.dev` permite testes somente para o endereço da conta Resend. Para usuários reais, verifique um domínio e use `Politika <noreply@seu-dominio-verificado>` em `EMAIL_FROM`.
+- `Sender domain is not verified`: confira DNS e status Verified do domínio exato do remetente na mesma conta Resend.
+- `API key authentication or permission failure` / `API key does not permit this sender domain`: confira chave ativa, sem aspas/espaços acidentais e escopo do domínio. `sending_access` basta; não é necessário ampliar para acesso total. Gere outra chave somente se a atual for inválida, revogada ou incompatível com o domínio.
+- `Invalid EMAIL_FROM format` / `senderFormatValid: false`: use um endereço simples ou `Nome <endereco@dominio.com>`. A checagem local de formato não comprova domínio verificado.
+- `Transport failure` com status null: o SDK não obteve resposta utilizável; investigar conectividade/timeout. Não implica rejeição por domínio.
+- `invalid_response`: a resposta não trouxe ID; não é tratada como envio aceito.
+
+Após publicar estas alterações, faça uma recuperação pelo formulário para uma conta sua cadastrada. Respeite o intervalo de 60 segundos e os limites por hora. Confira o evento nos Runtime Logs da mesma implantação. Ajuste apenas a variável indicada pelo diagnóstico em Vercel Production e faça novo deployment para aplicar os valores. Repita a solicitação: a falha invalida o token emitido. Confirme a tentativa em Emails no Resend e depois a entrega/inbox/spam. Nenhum teste local comprova entrega real.
+
+Referências: https://resend.com/docs/api-reference/errors, https://resend.com/docs/knowledge-base/403-error-resend-dev-domain e https://resend.com/docs/api-reference/api-keys/create-api-key.

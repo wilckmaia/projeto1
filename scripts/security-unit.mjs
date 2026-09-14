@@ -40,3 +40,69 @@ try {
   assert.equal(await password.checkPassword('incorrect'), false);
 } finally { if (previous === undefined) delete process.env.APP_ORIGIN; else process.env.APP_ORIGIN = previous; }
 console.log('PASS: public DTO/catalog, input bounds, origins, passwords and test-environment guard.');
+const diagnostics = load('src/lib/email-diagnostics.ts');
+const originalEnv = { ...process.env };
+const originalError = console.error;
+const logs = [];
+try {
+  process.env.RESEND_API_KEY = 're_fake_sensitive_key';
+  process.env.EMAIL_FROM = 'Politika <sender@example.test>';
+  delete process.env.EMAIL_TEST_ENDPOINT;
+  const responses = [];
+  let calls = 0;
+  const email = load('src/lib/email.ts', {
+    './errors': errors, './email-diagnostics': diagnostics,
+    './request-security': { appOrigin: () => 'https://example.test', emailField: security.emailField },
+    resend: { Resend: class {
+      constructor(key, options) {
+        assert.equal(key, process.env.RESEND_API_KEY);
+        assert.equal(options.baseUrl, 'https://api.resend.com');
+      }
+      emails = { send: async (content, options) => {
+        calls++;
+        assert.equal(content.from, process.env.EMAIL_FROM);
+        assert.deepEqual(content.to, ['recipient@example.test']);
+        assert.equal(options.idempotencyKey, 'reset/test-delivery');
+        const result = responses.shift();
+        if (result instanceof Error) throw result;
+        return result;
+      } };
+    } },
+  });
+  console.error = line => logs.push(JSON.parse(line));
+  const send = () => email.sendPasswordReset('recipient@example.test', 'sensitive-token', 'test-delivery');
+  responses.push({ data: { id: 'accepted' }, error: null });
+  await send();
+  assert.equal(logs.length, 0);
+  const failure = async () => {
+    await assert.rejects(send(), error => {
+      email.logPasswordResetDeliveryFailure(error, true);
+      return error.status === 503;
+    });
+  };
+  calls = 0;
+  responses.push({ data: { id: 'must-not-count' }, error: { name: 'validation_error', statusCode: 403, message: 'You can only send testing emails to recipient@example.test sensitive-token re_fake_sensitive_key' } });
+  await failure();
+  assert.equal(calls, 1);
+  assert.equal(logs.at(-1).statusCode, 403);
+  assert.match(logs.at(-1).errorMessage, /test sender restriction/);
+  responses.push({ data: {}, error: null }, { data: null, error: null });
+  await failure();
+  assert.equal(logs.at(-1).errorName, 'invalid_response');
+  responses.push(new TypeError('sensitive-token'), new TypeError('re_fake_sensitive_key'));
+  await failure();
+  assert.equal(logs.at(-1).errorName, 'TypeError');
+  assert.equal(logs.at(-1).recipientPresent, true);
+  assert.equal(logs.at(-1).senderFormatValid, true);
+  assert.equal(logs.at(-1).testSender, false);
+  assert.doesNotMatch(JSON.stringify(logs), /recipient@example|sensitive-token|re_fake_sensitive_key/);
+  assert.equal(diagnostics.emailDiagnostic({name:'sensitive-token', message:'https://host/#token=sensitive-token'}).errorName, 'unknown_error');
+  assert.match(diagnostics.emailDiagnostic({message:'The domain is not verified'}).errorMessage, /not verified/);
+  assert.match(diagnostics.emailDiagnostic({name:'invalid_api_key'}).errorMessage, /authentication/);
+  assert.match(diagnostics.emailDiagnostic({message:'Unable to fetch data.'}).errorMessage, /Transport/);
+} finally {
+  console.error = originalError;
+  for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
+  Object.assign(process.env, originalEnv);
+}
+console.log('PASS: Resend credentials/from/recipient wiring, returned errors, missing ID, exceptions and safe diagnostics.');

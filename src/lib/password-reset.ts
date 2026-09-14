@@ -3,7 +3,7 @@ import { prisma } from './prisma';
 import { newToken, tokenHash, validToken } from './session';
 import { hashPassword, validatePassword } from './password';
 import { HttpError } from './errors';
-import { emailConfiguration, sendPasswordReset } from './email';
+import { emailConfiguration, sendPasswordReset, logPasswordResetDeliveryFailure } from './email';
 import { appOrigin } from './request-security';
 
 export const recoveryMessage = 'Se existir uma conta associada a este e-mail, enviaremos um link de recuperação. Confira também o spam. Se não chegar, tente novamente em alguns minutos.';
@@ -24,9 +24,9 @@ export async function requestPasswordReset(email: string) {
   if (!issued) return;
   try {
     await sendPasswordReset(issued.email, issued.token, issued.record.id);
-  } catch {
+  } catch (error) {
     // Same public response even on provider failure; never reveal account existence.
-    console.error(JSON.stringify({ event: 'password_reset_delivery_failed' }));
+    logPasswordResetDeliveryFailure(error, Boolean(issued.email));
     await prisma.passwordResetToken.deleteMany({ where: { id: issued.record.id } });
   }
 }
