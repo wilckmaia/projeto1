@@ -5,8 +5,10 @@ import "./globals.css";
 import "./themes.css";
 
 import { themeBootstrapScript } from "@/lib/theme";
+import { siteOrigin } from "@/lib/site";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin),
   title: "Politika | Aprenda política por camadas",
   description:
     "Uma trilha gamificada e apartidária para estudar política brasileira e ciência política.",

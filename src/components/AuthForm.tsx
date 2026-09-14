@@ -66,6 +66,7 @@ export function AuthForm({ initialMode = 'login', onAuthenticated, externalError
       <button type="submit" disabled={busy || wait > 0}>{busy ? 'Aguarde…' : wait ? 'Tente novamente em ' + wait + 's' : label}</button>
       {isEmailOnly && <Link href="/">Voltar para entrar ou criar conta</Link>}
       {/* Password recovery entry point temporarily hidden. */}
+      <Link href="/sobre">Sobre o Politika</Link>
     </form>
   </div></main>;
 }

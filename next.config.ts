@@ -11,7 +11,14 @@ const nextConfig: NextConfig = {
         { key: 'Referrer-Policy', value: 'no-referrer' },
         { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
       ],
-    }];
+    }, ...[
+      '/', '/perfil', '/confirmar', '/verificar-email', '/recuperar-senha',
+      '/redefinir-senha', '/conquistas/:path*', '/api/:path*',
+    ].map(source => ({
+      // Login, personal data and token-based pages are not search results.
+      source,
+      headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+    }))];
   },
 };
 export default nextConfig;
