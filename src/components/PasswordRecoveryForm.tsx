@@ -87,7 +87,7 @@ export function PasswordRecoveryForm({ reset = false }: { reset?: boolean }) {
     </form>}
     {error && <p role="alert" style={{ color: 'var(--danger-text)' }}>{error}</p>}
     {message && <p role="status">{message}</p>}
-    {reset && !done && <p><Link href="/recuperar-senha">Solicitar nova recuperação</Link></p>}
+    {/* New recovery requests are temporarily hidden from navigation. */}
     <p><Link href="/">{done ? 'Ir para o login' : 'Voltar para o login'}</Link></p>
   </div></main>;
 }
