@@ -12,7 +12,6 @@ export async function POST(request: Request) {
   try {
     validateMutation(request);
     const ip = clientKey(request);
-    await limit('auth-ip-minute', ip, 30, 60);
     const body = await readJson(request, 16384);
     const action = body.action;
     if (action === 'confirm') {
@@ -32,16 +31,11 @@ export async function POST(request: Request) {
       return json(await getSessionPayload());
     }
     if (action === 'register') {
-      await limit('register-ip', ip, 5, 3600);
-      await limit('register-address', email, 5, 3600);
       const name = textField(body.name, 40).trim();
       if (!name) throw new HttpError(400, 'Informe seu nome.');
       await registerUser(email, name, textField(body.password, 256));
       return json({ ok: true, message: registrationMessage }, 202);
     }
-    await limit('email-cooldown', email, 1, 60);
-    await limit('email-address-hour', email, 5, 3600);
-    await limit('email-ip', ip, 5, 3600);
     await requestConfirmation(email);
     return json({ ok: true, message: confirmationMessage }, 202);
   } catch (error) { return errorResponse(error); }

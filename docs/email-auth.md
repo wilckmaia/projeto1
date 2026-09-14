@@ -4,14 +4,14 @@
 
 O login existente em `/` usa `AuthForm`. O link “Esqueci minha senha” abre `/recuperar-senha`. O cadastro, a verificação opcional, o progresso e o login mantêm seus comportamentos.
 
-- `POST /api/auth/forgot-password`: recebe e-mail, normaliza e valida; aplica limites persistentes de 5 solicitações/IP/hora, 1/e-mail/minuto e 5/e-mail/hora. Responde HTTP 202 com a mesma mensagem para contas existentes e desconhecidas. HTTP 429 inclui Retry-After.
-- A consulta e o envio executam com `after()` do Next.js (suportado na Vercel, maxDuration 60 segundos), impedindo que o tempo de envio revele a existência da conta. Não é uma fila durável: em falhas ou interrupções, o usuário pode reenviar após o intervalo. Erros geram eventos sanitizados no servidor, sem alterar a resposta genérica.
+- `POST /api/auth/forgot-password`: recebe e-mail, normaliza e valida; não bloqueia por quantidade de tentativas nem impõe intervalo entre solicitações. Responde HTTP 202 com a mesma mensagem para contas existentes e desconhecidas.
+- A consulta e o envio executam com `after()` do Next.js (suportado na Vercel, maxDuration 60 segundos), impedindo que o tempo de envio revele a existência da conta. Não é uma fila durável: em falhas ou interrupções, o usuário pode reenviar. Erros geram eventos sanitizados no servidor, sem alterar a resposta genérica.
 - Somente usuários existentes recebem token aleatório de 32 bytes (256 bits), com hash SHA-256 em `PasswordResetToken`. Nenhum token é devolvido pela API.
 - Cada solicitação processada apaga os tokens anteriores da conta. Se o envio falhar, o novo token também é apagado; solicite outro link.
 - E-mail real pelo SDK oficial Resend, HTML responsivo e texto simples, com timeout de 10 segundos por tentativa e uma repetição com a mesma chave de idempotência.
 - Link: `${APP_ORIGIN}/redefinir-senha#token=...`. O fragmento mantém o token fora dos logs HTTP e é removido do endereço após carregar. A página também aceita `?token=...` por compatibilidade, mas o envio usa fragmento. Desative rastreamento de cliques para não reescrever o link.
 - `/redefinir-senha`: nova senha, confirmação, mostrar/ocultar, validação, loading, erros, sucesso e retorno ao login. Abrir o link não consome o token.
-- `POST /api/auth/reset-password`: recebe `token`, `password` e `confirmPassword`. Valida hash, expiração de 30 minutos e uso; aplica limite de 20 tentativas/IP/minuto.
+- `POST /api/auth/reset-password`: recebe `token`, `password` e `confirmPassword`. Valida hash, expiração de 30 minutos e uso; não aplica bloqueio por quantidade de tentativas.
 - A política existente foi compartilhada entre frontend e backend: mínimo de 15 caracteres Unicode, máximo de 72 bytes UTF-8, rejeição de senhas previsíveis. O bcryptjs permanece com custo 12.
 - Transação com bloqueio da linha do usuário atualiza a senha, marca o token como usado, invalida os demais e apaga todas as sessões. O bloqueio é compatível com a emissão de sessões existente e impede corridas com login e consumo duplo.
 - A recuperação identifica a conta exclusivamente pelo token. Nenhuma senha, token original ou credencial é registrada pelos logs da aplicação.
@@ -51,7 +51,7 @@ npm run test:integration -- --browser
 
 A suíte integrada usa PostgreSQL temporário local, aplica todo o histórico de migrations e verifica diferenças de schema, TypeScript, build, APIs e Chromium. O SDK envia somente ao capturador HTTP do ambiente isolado; isso testa o fluxo sem mandar mensagens reais ou tocar no banco remoto. Requer PostgreSQL 18 e Chrome instalados; PG_BIN permite configurar o caminho do PostgreSQL.
 
-Os testes de recuperação cobrem conta existente/inexistente e resposta idêntica, normalização, token aleatório armazenado como hash, prazo, token inválido/expirado/usado, senhas fracas/diferentes, substituição de link, consumo concorrente/replay, revogação de sessões, login com senha nova e rejeição da antiga, falha de envio e rate limiting. O teste Chromium percorre formulários, visibilidade, erros, sucesso e login.
+Os testes de recuperação cobrem conta existente/inexistente e resposta idêntica, normalização, token aleatório armazenado como hash, prazo, token inválido/expirado/usado, senhas fracas/diferentes, substituição de link, consumo concorrente/replay, revogação de sessões, login com senha nova e rejeição da antiga, falha de envio. O teste Chromium percorre formulários, visibilidade, erros, sucesso e login.
 
 Após publicar, faça uma solicitação para uma conta sua e confirme a entrega real na caixa de entrada e no painel do Resend. A entrega externa não é comprovada pelo capturador local.
 
@@ -68,6 +68,8 @@ O evento `password_reset_delivery_failed` inclui `provider`, `errorName` (lista 
 - `Transport failure` com status null: o SDK não obteve resposta utilizável; investigar conectividade/timeout. Não implica rejeição por domínio.
 - `invalid_response`: a resposta não trouxe ID; não é tratada como envio aceito.
 
-Após publicar estas alterações, faça uma recuperação pelo formulário para uma conta sua cadastrada. Respeite o intervalo de 60 segundos e os limites por hora. Confira o evento nos Runtime Logs da mesma implantação. Ajuste apenas a variável indicada pelo diagnóstico em Vercel Production e faça novo deployment para aplicar os valores. Repita a solicitação: a falha invalida o token emitido. Confirme a tentativa em Emails no Resend e depois a entrega/inbox/spam. Nenhum teste local comprova entrega real.
+Após publicar estas alterações, faça uma recuperação pelo formulário para uma conta sua cadastrada. Não há intervalo obrigatório imposto pela aplicação. Confira o evento nos Runtime Logs da mesma implantação. Ajuste apenas a variável indicada pelo diagnóstico em Vercel Production e faça novo deployment para aplicar os valores. Repita a solicitação: a falha invalida o token emitido. Confirme a tentativa em Emails no Resend e depois a entrega/inbox/spam. Nenhum teste local comprova entrega real.
 
 Referências: https://resend.com/docs/api-reference/errors, https://resend.com/docs/knowledge-base/403-error-resend-dev-domain e https://resend.com/docs/api-reference/api-keys/create-api-key.
+
+Os POSTs de login, cadastro e reenvio de confirmação também não bloqueiam por contagem de tentativas. O atraso progressivo para senha incorreta permanece; ele não bloqueia o login correto. Limites de leitura de sessão, progresso e compartilhamento continuam ativos. Limites externos do Resend/Vercel continuam sujeitos aos provedores.

@@ -42,7 +42,6 @@ export async function testPasswordReset({ prisma, base, post, current, mail, del
   await new Promise(r => setTimeout(r, 300)); assert.equal(mail.length, before);
   assert.equal(await prisma.passwordResetToken.count({ where: { userId: user.id } }), 1);
   assert.equal((await request('invalid')).status, 400);
-  const limited = await request(email); assert.equal(limited.status, 429); assert.ok(Number(limited.headers.get('retry-after')) > 0);
   assert.equal((await reset('!'.repeat(43))).status, 400);
   assert.equal((await reset('z'.repeat(43))).status, 400);
   assert.equal((await reset(first.token, 'weak')).status, 400);
@@ -70,9 +69,11 @@ export async function testPasswordReset({ prisma, base, post, current, mail, del
   assert.equal(mail.at(-1).idempotencyKey, mail.at(-2).idempotencyKey);
   delivery.mode = 'ok';
   await clearLimits();
-  for (let i = 0; i < 5; i++) assert.equal((await request(randomUUID() + '@example.test')).status, 202);
-  assert.equal((await request(randomUUID() + '@example.test')).status, 429, 'persistent IP limit');
+  const repeatedAddress = randomUUID() + '@example.test';
+  for (let i = 0; i < 6; i++) assert.equal((await request(repeatedAddress)).status, 202, 'no email cooldown or hourly lockout');
+  assert.equal((await request(randomUUID() + '@example.test')).status, 202, 'no request count lockout');
+  for (let i = 0; i < 21; i++) assert.equal((await reset('z'.repeat(43))).status, 400, 'invalid token remains rejected without count lockout');
   assert.equal((await fetch(base + '/redefinir-senha')).status, 200);
   await clearLimits();
-  console.log('PASS: password recovery, generic response, SDK delivery, hashed tokens, expiry/use/replay/race, password validation, session revocation, old/new login and persistent rate limits.');
+  console.log('PASS: password recovery, generic response, SDK delivery, hashed tokens, expiry/use/replay/race, password validation, session revocation, old/new login and no attempt lockout.');
 }
