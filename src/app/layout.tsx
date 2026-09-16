@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 
@@ -34,7 +35,10 @@ export default async function RootLayout({
         />
       </head>
 
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
