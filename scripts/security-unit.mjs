@@ -39,7 +39,7 @@ try {
   await assert.rejects(security.readJson(request('[]'), 20), e => e.status === 400);
   assert.equal(security.emailField(' USER@example.test '), 'user@example.test');
   assert.throws(() => security.emailField('invalid@'), e => e.status === 400);
-  assert.throws(() => password.validatePassword('123456'), e => e.status === 400);
+  assert.throws(() => password.validatePassword('aB3!'), e => e.status === 400);
   assert.throws(() => password.validatePassword('😀'.repeat(19)), e => e.status === 400);
   password.validatePassword('A long and unusual test phrase 42!');
   const hash = await password.hashPassword('A long and unusual test phrase 42!');

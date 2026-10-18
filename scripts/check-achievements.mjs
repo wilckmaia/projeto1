@@ -92,7 +92,7 @@ try {
   assert.equal((await post('/api/session',{action:'login'},undefined,{'Content-Type':'text/plain'})).status,415);
   assert.equal((await post('/api/session',{action:'unknown'})).status,400);
   assert.equal((await post('/api/session',{padding:'x'.repeat(17000)})).status,413);
-  assert.equal((await post('/api/session',{action:'register',email:'a@example.test',name:'A',password:'123456'})).status,400);
+  assert.equal((await post('/api/session',{action:'register',email:'a@example.test',name:'A',password:'aB3!'})).status,400);
   assert.equal((await post('/api/progress',{answers:[]})).status,401);
   const a = await account(), b = await account();
   assert.match(a.headers.get('set-cookie'),/HttpOnly/i); assert.match(a.headers.get('set-cookie'),/Secure/i); assert.match(a.headers.get('set-cookie'),/SameSite=Lax/i);
