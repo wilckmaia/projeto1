@@ -2,46 +2,33 @@ import { prisma } from '@/lib/prisma';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getSessionPayload } from '@/lib/storage';
+import { getSessionPayload, worldCompleted } from '@/lib/storage';
 import { achievements, isAchievementUnlocked } from '@/lib/achievements';
+import { achievements as legacyAchievements } from '@/lib/legacy-achievements';
 import { getWorldCompletion } from '@/lib/progress';
-import { worlds } from '@/lib/data';
-import { AchievementMedal } from '@/components/AchievementMedal';
+import { CertificateButton } from '@/components/CertificateButton';
 import { ShareAchievement } from '@/components/ShareAchievement';
-
-export const metadata = { title: 'Meu perfil e conquistas | Politika' };
-
+import { AchievementMedal } from '@/components/AchievementMedal';
+import { WorldIcon } from '@/components/WorldIcon';
+import { worlds } from '@/lib/catalog';
+export const metadata = { title: 'Meu perfil e certificados | Politika' };
 export default async function ProfilePage() {
-  const { user, progress } = await getSessionPayload();
-  if (!user) redirect('/');
-  const shares = await prisma.achievementShare.findMany({ where: { userId: user.id }, select: { worldId: true, token: true } });
-  const unlockedCount = achievements.filter((item) => isAchievementUnlocked(item.worldId, progress)).length;
-  return <div className="page-shell"><div className="app-layout">
-    <aside className="sidebar">
-      <Link href="/" className="brand"><span className="brand-mark">P</span><span>politika<span className="brand-dot">.</span></span></Link>
-      <nav className="nav-list" aria-label="Navegação do perfil">
-        <Link className="nav-link" href="/" aria-label="Painel principal / Home"><span aria-hidden="true">⌂</span> Painel principal</Link>
-        <Link className="nav-link" href="/#trilhas" aria-label="Trilhas"><span aria-hidden="true">◈</span> Trilhas</Link>
-        <Link className="nav-link active" href="/perfil" aria-current="page" aria-label="Meu perfil"><span aria-hidden="true">◎</span> Meu perfil</Link>
-      </nav>
-    </aside>
-    <main className="main-panel">
-      <header className="topbar"><div><div className="eyebrow">Sua jornada, suas conquistas</div><h1 className="title">Meu perfil</h1></div><div className="topbar-right"><ThemeToggle /><span className="pill">✦ {unlockedCount}/{achievements.length} conquistas</span></div></header>
-      <section className="profile-summary"><div className="avatar">{user.name.slice(0, 2).toUpperCase()}</div><div><h2>{user.name}</h2><p>{progress.completedTasks.length} tarefas concluídas · Cada passo conta.</p></div></section>
-      <div className="section-head"><h2>Uma medalha a cada mundo</h2></div>
-      <p className="achievement-intro">Conclua todas as tarefas de um mundo para revelar sua conquista. Seu progresso é reconhecido automaticamente.</p>
-      <div className="achievement-grid">{achievements.map((achievement) => {
-        const unlocked = isAchievementUnlocked(achievement.worldId, progress);
-        const summary = getWorldCompletion(achievement.worldId, progress);
-        return <article data-world={achievement.worldId} key={achievement.worldId} className={`achievement-card ${unlocked ? 'unlocked' : 'is-locked'}`} style={{ borderTopColor: `var(--world-accent, ${achievement.color})` }}>
-          <span className="achievement-state">{unlocked ? '✓ Desbloqueada' : '🔒 Bloqueada'} · Conquista {achievement.number}</span>
-          <AchievementMedal achievement={achievement}/>
-          <div className="eyebrow">Mundo {achievement.number} · {worlds.find((world) => world.id === achievement.worldId)?.name}</div>
-          <h3>{achievement.title}</h3><p className="achievement-phrase">{achievement.phrase}</p>
-          <div className="achievement-progress"><span>{summary.completed}/{summary.total} tarefas concluídas</span><progress max={summary.total} value={summary.completed} aria-label={`Progresso da conquista ${achievement.number}`}/></div>
-          {unlocked ? <ShareAchievement worldId={achievement.worldId} initialPath={shares.find(share => share.worldId === achievement.worldId) ? `/conquistas/${shares.find(share => share.worldId === achievement.worldId)!.token}` : undefined}/> : <p className="achievement-requirement">Conclua o Mundo {achievement.number} para desbloquear esta medalha e seu link público.</p>}
-        </article>;
-      })}</div>
-    </main>
-  </div></div>;
+ const { user, progress } = await getSessionPayload();
+ if (!user) redirect('/');
+ const [certificates, shares] = await Promise.all([
+  prisma.certificate.findMany({ where: { userId: user.id }, orderBy: { issuedAt: 'desc' } }),
+  prisma.achievementShare.findMany({ where: { userId: user.id } }),
+ ]);
+ const legacy = await Promise.all(legacyAchievements.map(async achievement => ({ achievement, done: await worldCompleted(user.id, achievement.worldId) })));
+ return <main className="task-page"><header className="task-header"><Link href="/" className="back-button">← Painel principal</Link><Link href="/biblioteca" className="secondary-button">Biblioteca</Link><ThemeToggle/></header><div className="task-body"><div className="eyebrow">Sua jornada</div><h1>Meu perfil</h1><h2>{user.name}</h2><p>{progress.completedTasks.length} atividades concluídas.</p><div className="section-head"><h2>Certificados por mundo</h2></div>
+ <div className="certificate-grid">{achievements.map(achievement => {
+  const world = worlds.find(world => world.id === achievement.worldId)!;
+  const unlocked = isAchievementUnlocked(world.id, progress);
+  const summary = getWorldCompletion(world.id, progress);
+  const certificate = certificates.find(item => item.worldId === world.id);
+  return <article className="achievement-card" data-world={world.id} key={world.id}>{world.original ? <AchievementMedal achievement={legacyAchievements.find(item => item.worldId === world.id)!}/> : <span className="world-icon"><WorldIcon kind={world.icon}/></span>}<h3>{achievement.title}</h3><p>{summary.total ? summary.completed + '/' + summary.total + ' lições concluídas' : 'Conteúdo em preparação'}</p><progress max={Math.max(1, summary.total)} value={summary.completed}/>{certificate ? <Link className="primary-button" href={'/certificados/' + certificate.id}>Visualizar / baixar PDF</Link> : unlocked ? <CertificateButton worldId={world.id}/> : <p className="achievement-requirement">Conclua todas as lições deste mundo para emitir seu certificado.</p>}</article>;
+ })}</div>
+ {certificates.length > 0 && <section><h2>Todos os certificados emitidos</h2>{certificates.map(certificate => <p key={certificate.id}><Link href={'/certificados/' + certificate.id}>{certificate.title} · {certificate.issuedAt.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</Link></p>)}</section>}
+ <section className="legacy-achievements"><h2>Histórico preservado</h2><p>Seu progresso anterior e suas conquistas continuam guardados. A conclusão dos três mundos iniciais libera os quatro mundos seguintes.</p>{legacy.filter(item => item.done || shares.some(share => share.worldId === item.achievement.worldId)).map(({ achievement }) => <article className="keybox" key={achievement.worldId}><h3>{achievement.title}</h3><ShareAchievement worldId={achievement.worldId} initialPath={shares.find(share => share.worldId === achievement.worldId) ? '/conquistas/' + shares.find(share => share.worldId === achievement.worldId)!.token : undefined}/></article>)}<Link className="secondary-button" href="/biblioteca">Consultar acervo anterior</Link></section>
+ </div></main>;
 }

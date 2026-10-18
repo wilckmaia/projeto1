@@ -34,20 +34,13 @@ export const defaultProgress: UserProgress = {
   lastUpdated: null,
 };
 
-export const isWorldUnlocked = (worldId: string, progress: UserProgress) => {
-  const required = worlds.find((world) => world.id === worldId)?.prerequisiteWorldIds;
-  if (required) return required.every((id) => {
-    const tasks = worlds.find((world) => world.id === id)?.tasks;
-    return Boolean(tasks?.length && tasks.every((task) => progress.completedTasks.includes(task.id)));
+export const isWorldUnlocked = (worldId: string, progress: UserProgress): boolean => {
+  const world = worlds.find(world => world.id === worldId);
+  if (!world) return false;
+  return world.prerequisiteWorldIds.every(id => {
+    const required = worlds.find(world => world.id === id);
+    return Boolean(required?.tasks.length && isWorldUnlocked(id, progress) && required.tasks.every(task => progress.completedTasks.includes(task.id)));
   });
-  const worldOrder = worlds.map((world) => world.id);
-  const currentIndex = worldOrder.indexOf(worldId);
-  if (currentIndex === -1) return false;
-  if (worldId === "mundo-1") return true;
-  const previousWorldId = worldOrder[currentIndex - 1];
-  if (!previousWorldId) return false;
-  const previousTasks = worlds.find((world) => world.id === previousWorldId)?.tasks ?? [];
-  return previousTasks.every((task) => progress.completedTasks.includes(task.id));
 };
 
 export const getWorldCompletion = (worldId: string, progress: UserProgress) => {
@@ -64,11 +57,9 @@ export const getWorldStatus = (worldId: string, progress: UserProgress) => {
   return {
     unlocked,
     summary,
-    blockedReason: unlocked ? "" : worlds.find((world) => world.id === worldId)?.prerequisiteWorldIds
-      ? "Complete todas as atividades dos 3 primeiros mundos para desbloquear este mundo."
-      : worldId === "mundo-2"
-      ? "Complete todas as atividades do Mundo 1 para desbloquear este mundo."
-      : "Complete todas as atividades do Mundo 2 para continuar.",
+    blockedReason: unlocked ? "" : worlds.find(world => world.id === worldId)?.original
+      ? `Conclua o mundo ${worlds.find(world => world.id === worlds.find(item => item.id === worldId)?.prerequisiteWorldIds[0])?.name ?? 'anterior'} para desbloquear este mundo.`
+      : 'Conclua os três mundos iniciais para desbloquear este mundo.',
   };
 };
 
@@ -89,7 +80,8 @@ export const buildTaskCompletion = (
   const acertos = taskAnswers.filter((answer) => answer.isCorrect).length;
   const erros = taskAnswers.filter((answer) => !answer.isCorrect).length;
   const task = worlds.find((world) => world.id === worldId)?.tasks.find((item) => item.id === taskId);
-  const completed = Boolean(task && taskAnswers.length === task.questionCount);
+  if (!task) return existing;
+  const completed = !worlds.find(world => world.id === worldId)?.original || taskAnswers.length === task.questionCount;
   const taskProgress: TaskProgress = {
     taskId,
     worldId,
@@ -105,7 +97,7 @@ export const buildTaskCompletion = (
 
   const worldTasks = worlds.find((world) => world.id === worldId)?.tasks ?? [];
   const completedWorlds = new Set(existing.completedWorlds);
-  if (worldTasks.every((task) => completedTasks.has(task.id))) {
+  if (worldTasks.length > 0 && worldTasks.every((task) => completedTasks.has(task.id))) {
     completedWorlds.add(worldId);
   }
 

@@ -1,4 +1,4 @@
-import { achievements } from '@/lib/achievements';
+import { achievements } from '@/lib/legacy-achievements';
 import { getCurrentUser, worldCompleted } from '@/lib/storage';
 import { prisma } from '@/lib/prisma';
 import { HttpError, errorResponse, json } from '@/lib/errors';

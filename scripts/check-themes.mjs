@@ -5,12 +5,13 @@ assertTestDatabase();
 // Run through npm run test:integration -- --browser only.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
-import ts from 'typescript';
+import { load } from './education-test-harness.mjs';
+import { PDFDocument } from 'pdf-lib';
 import { createServer } from 'node:http';
 import { testAuthBrowser } from './test-auth-browser.mjs';
 
@@ -111,9 +112,6 @@ async function contrast(selectors) {
     assert.ok(ratio >= 4.5, `${item.selector} contrast ${ratio.toFixed(2)}: ${item.foreground} / ${item.background}`);
   }
 }
-async function post(path, body, cookie) {
-  return fetch(base + path, { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) }, body: JSON.stringify(body) });
-}
 try {
   await ready(base); await launch();
   await navigate('/');
@@ -138,41 +136,111 @@ try {
   const cookie = 'politika_user=' + token;
   await prisma.rateLimit.deleteMany();
   await call('Network.setCookie', { name: cookie.split('=')[0], value: cookie.slice(cookie.indexOf('=') + 1), url: base, httpOnly: true, secure: true });
-  const source = ts.transpileModule(await readFile('src/lib/data.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
-  const data = { exports: {} }; new Function('exports', 'module', 'require', source)(data.exports, data, name => { assert.equal(name, 'server-only'); return {}; });
-  for (const world of data.exports.worlds.slice(0, 3)) for (const task of world.tasks) {
-    assert.equal((await post('/api/progress', { worldId: world.id, taskId: task.id, answers: task.questions.map((q, i) => ({ questionId: `${task.id}-${i}`, selectedIndex: q.correctIndex })) }, cookie)).status, 200);
-  }
+  const worlds = load('src/lib/catalog.ts').worlds;
   for (const dark of [false, true]) {
     await navigate('/'); await waitFor("!!document.querySelector('.world-grid')"); await theme(dark);
-    await contrast(['.world-card strong', '.world-card small', '.pill', '.theme-toggle', '.nav-link', '.metric-card small']);
-    await screenshot(`dashboard-${dark ? 'dark' : 'light'}`);
-    await navigate('/perfil'); await contrast(['.achievement-state', '.achievement-phrase', '.achievement-requirement']);
-    for (const world of data.exports.worlds.slice(3)) {
-      await navigate(`/${world.id}`); await contrast(['h1', '.subtitle', '.task-item small', '.kpis span', '.secondary-button', '.theme-toggle']);
-      await screenshot(`${world.id}-${dark ? 'dark' : 'light'}`);
-      await navigate(`/${world.id}/${world.tasks[0].id}`);
-      await contrast(['h1', '.subtitle', '.question-card h3', '.option-button', '.primary-button', '.theme-toggle']);
-      await screenshot(`${world.id}-lesson-${dark ? 'dark' : 'light'}`);
-      await evaluate("document.querySelector('.question-card').scrollIntoView({block:'center'})");
-      const point = await evaluate("(()=>{const r=document.querySelector('.option-button').getBoundingClientRect();return {x:r.x+10,y:r.y+10}})()");
-      await call('Input.dispatchMouseEvent', { type: 'mouseMoved', ...point });
-      await pause(250); await contrast(['.option-button']);
-      await evaluate("document.querySelector('.option-button').click()");
-      await contrast(['.option-button.selected']);
-      await evaluate("document.querySelector('.action-row button').click()");
-      await waitFor("!!document.querySelector('.feedback-box')");
-      await contrast(['.option-button', '.feedback-box', '.primary-button']);
-      await screenshot(`${world.id}-feedback-${dark ? 'dark' : 'light'}`);
-      await evaluate("document.querySelector('.action-row button').click()");
-      await waitFor("!document.querySelector('.feedback-box')");
+    assert.equal(await evaluate("document.querySelectorAll('.education-world').length"),7);
+    await contrast(['.world-card strong', '.world-card small', '.world-card-copy > span', '.theme-toggle', '.nav-link', '.metric-card small']);
+    await screenshot('dashboard-' + (dark ? 'dark' : 'light'));
+    await navigate('/perfil'); await contrast(['.achievement-requirement', '.theme-toggle']);
+    for (const world of worlds) {
+      await navigate('/' + world.id);
+      await contrast(['h1', '.subtitle', '.secondary-button', '.theme-toggle']);
+      assert.ok(await evaluate('document.body.innerText.includes(' + JSON.stringify(world.id === 'mundo-1' ? 'Fundamentos' : 'Mundo bloqueado') + ')'));
+      await screenshot(world.id + '-' + (dark ? 'dark' : 'light'));
       await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
-      assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'No horizontal overflow');
-      await screenshot(`${world.id}-mobile-${dark ? 'dark' : 'light'}`);
+      assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'No mobile overflow');
+      await screenshot(world.id + '-mobile-' + (dark ? 'dark' : 'light'));
       await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
-      console.log(`PASS: ${world.id} ${dark ? 'dark' : 'light'}, world + lesson + mobile contrast/layout`);
     }
+    await navigate('/biblioteca/m1-t1');
+    assert.equal(await evaluate("document.querySelector('details').open"),false,'optional questions start closed');
+    await contrast(['.lesson-reading p', '.lesson-reading .eyebrow', '.optional-reference summary']);
+    await screenshot('library-' + (dark ? 'dark' : 'light'));
+    await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    await navigate('/'); await waitFor("!!document.querySelector('.world-grid')");
+    assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'),'dashboard mobile overflow');
+    await screenshot('dashboard-mobile-' + (dark ? 'dark' : 'light'));
+    await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
   }
+  // Unlock Economy using only this isolated browser-test account.
+  const originalTasks = worlds.filter(world => world.original).flatMap(world => world.tasks.map(task => ({ worldId: world.id, taskId: task.id })));
+  for (const task of originalTasks) await prisma.taskProgress.create({ data: { id: randomUUID(), userId, ...task, completed: true, completedAt: new Date() } });
+  const economy = load('src/lib/education.ts').educationWorlds.find(world => world.id === 'economia');
+  await navigate('/economia');
+  assert.equal(await evaluate("document.querySelectorAll('a[href^=\"/economia/trilhas/\"]').length"), 7);
+  await screenshot('economy-micromundos');
+  for (const track of economy.tracks) {
+    await navigate('/economia/trilhas/' + track.id);
+    const titles = await evaluate("[...document.querySelectorAll('.task-list .task-item strong')].map(el=>el.textContent)");
+    assert.deepEqual(titles, track.lessons.map(lesson => lesson.title));
+    const intro = await evaluate("document.querySelector('.track-introduction').textContent");
+    for (const text of [track.overview, track.description, track.internalTopics].filter(Boolean)) assert.ok(intro.includes(text));
+    if (track.reference) assert.equal(await evaluate("document.querySelector('.track-reference').getAttribute('href')"), track.reference.url);
+  }
+  await navigate('/economia/' + economy.tracks[0].lessons[0].id);
+  assert.equal(await evaluate("document.querySelector('.task-body > h1').textContent"), 'Tópico 1 — Produto Interno Bruto (PIB)');
+  const documents = load('src/lib/economy-study-documents.ts').studyDocuments;
+  const parseDocument = load('src/lib/study-document.ts').parseStudyDocument;
+  for (const lesson of economy.tracks.flatMap(track => track.lessons).filter(lesson => lesson.documentId)) {
+    const source = documents[lesson.documentId];
+    const parsed = parseDocument(source);
+    await navigate('/economia/' + lesson.id);
+    assert.equal(await evaluate("document.querySelector('.task-body > h1').textContent"), parsed.title);
+    assert.deepEqual(await evaluate("[...document.querySelectorAll('.study-activity > h2')].map(el=>el.textContent)"), parsed.activities.map(activity => activity.title));
+    assert.equal(await evaluate("document.querySelectorAll('.study-answer:not([open])').length"), 10);
+    assert.equal(await evaluate("document.querySelectorAll('.katex-error').length"), 0);
+    const formulas = [...source.matchAll(/\\\[\n([\s\S]*?)\n\\\]/g)].map(match => match[1]);
+    assert.deepEqual(await evaluate("[...document.querySelectorAll('annotation[encoding=\"application/x-tex\"]')].map(el=>el.textContent)"), formulas);
+    assert.equal(await evaluate("document.querySelectorAll('.study-table table').length"), ({pib:4,inflacao:2,desemprego:3,crescimento:2,ciclos:1,demanda:0,consumo:2})[lesson.documentId]);
+    await screenshot('study-' + lesson.documentId);
+    for (const [index, expected] of (lesson.documentId === 'pib' ? [['1.100,00', '900,00'], ['1.440,00', '1.200,00', '44,00', '20,00']] : lesson.documentId === 'inflacao' ? [['1.338,23', '747,26'], ['160,00', '220,00', '37,50']] : lesson.documentId === 'crescimento' ? [['1,49','2,65'],['100,00','200,00']] : lesson.documentId === 'ciclos' ? [['-5,00'],['900,00','990,00','11,11']] : lesson.documentId === 'demanda' ? [['133,33','1.133,33'],['155,56','1.222,22']] : lesson.documentId === 'consumo' ? [['3.500,00','500,00','87,50'],['109.090,91','9.090,91']] : [['9,72','72,00','15,58','77,00'],['100,00','50,00']]).entries()) {
+      await evaluate("document.querySelector('[data-activity=\"" + (index + 1) + "\"] .economy-simulator button').click()");
+      await waitFor("!!document.querySelector('[data-activity=\"" + (index + 1) + "\"] .economy-simulator dl')");
+      const results = await evaluate("document.querySelector('[data-activity=\"" + (index + 1) + "\"] .economy-simulator dl').textContent");
+      for (const value of expected) assert.ok(results.includes(value));
+    }
+    const challengeActivity = lesson.documentId === 'inflacao' ? 1 : 2;
+    const changes = lesson.documentId === 'pib' ? [[0, '100'], [1, '20']] : lesson.documentId === 'inflacao' ? [[1, '10'], [2, '2']] : lesson.documentId === 'crescimento' ? [[2,'2']] : lesson.documentId === 'ciclos' ? [[1,'20'],[2,'20']] : lesson.documentId === 'demanda' ? [[0,'90']] : lesson.documentId === 'consumo' ? [[2,'20']] : [[0,'20000']];
+    await evaluate(`(()=>{const inputs=document.querySelectorAll('[data-activity="${challengeActivity}"] .economy-simulator input');for(const [index,value] of ${JSON.stringify(changes)}){Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(inputs[index],value);inputs[index].dispatchEvent(new Event('input',{bubbles:true}));}})()`);
+    await waitFor("!document.querySelector('[data-activity=\"" + challengeActivity + "\"] .economy-simulator dl')");
+    await evaluate("document.querySelector('[data-activity=\"" + challengeActivity + "\"] .economy-simulator button').click()");
+    await waitFor("!!document.querySelector('[data-activity=\"" + challengeActivity + "\"] .economy-simulator dl')");
+    assert.deepEqual(await evaluate("[...document.querySelectorAll('[data-activity=\"" + challengeActivity + "\"] .economy-simulator dd')].map(el=>el.textContent)"), lesson.documentId === 'pib' ? ['2.000,00', '1.000,00', '100,00', '0,00'] : lesson.documentId === 'inflacao' ? ['1.210,00', '826,45'] : lesson.documentId === 'crescimento' ? ['200,00','400,00'] : lesson.documentId === 'ciclos' ? ['800,00','960,00','25,00'] : lesson.documentId === 'demanda' ? ['165,56','1.172,22'] : lesson.documentId === 'consumo' ? ['100.000,00','0,00'] : ['200,00','100,00']);
+    const correctLetter = parsed.activities[0].answer.match(/Alternativa correta: ([A-D])\)/)[1];
+    await evaluate("document.querySelector('[data-activity=\"1\"] input[type=radio][value=" + correctLetter + "]').click()");
+    await waitFor("document.querySelector('[data-activity=\"1\"] .study-choices button').disabled === false");
+    await evaluate("document.querySelector('[data-activity=\"1\"] .study-choices button').click()");
+    await waitFor("document.querySelector('[data-activity=\"1\"] .study-choices [role=status]')?.textContent === 'Alternativa correta.'");
+    await evaluate("document.querySelector('[data-activity=\"1\"] details').open = true");
+    await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+    assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'study document mobile overflow');
+    await screenshot('study-' + lesson.documentId + '-mobile');
+    await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+  }
+  for(const removed of ['economia-macro-topico-2','economia-micro-topico-2','economia-politica-topico-10']) {
+    const response=await fetch(base+'/economia/'+removed,{headers:{Cookie:cookie}});
+    assert.equal(response.status,404,'removed empty topic is inaccessible');
+  }
+  console.log('PASS: seven study documents, all 70 activities, exact LaTeX, tables, closed answer panels, correct alternatives, fourteen interactive simulators and mobile layout.');
+  await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await navigate('/economia/trilhas/' + economy.tracks[0].id);
+  assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'));
+  await screenshot('economy-micromundo-mobile');
+  await call('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
+  console.log('PASS: seven Economy micromundos, only topics with activities, both descriptions, internal topics, original links and mobile topic navigation.');
+  // A test-only issued snapshot verifies view/download independently of future content.
+  const certificate = await prisma.certificate.create({ data: { userId, worldId: 'render-fixture', userName: 'Teste Árvore 日本', worldName: 'Executivo', title: 'Certificado do Poder Executivo', color: '#967000', completedAt: new Date() } });
+  await navigate('/certificados/' + certificate.id);
+  await screenshot('certificate');
+  await evaluate("(()=>{const original=URL.createObjectURL;URL.createObjectURL=blob=>{blob.arrayBuffer().then(buffer=>{let s='';for(const b of new Uint8Array(buffer))s+=String.fromCharCode(b);window.testPDF=btoa(s);});return original(blob);};const originalImage=HTMLCanvasElement.prototype.toDataURL;HTMLCanvasElement.prototype.toDataURL=function(...args){const data=originalImage.apply(this,args);window.testCertificatePNG=data;return data;};[...document.querySelectorAll('button')].find(b=>b.textContent==='Baixar PDF').click();})()");
+  await waitFor('!!window.testPDF');
+  const bytes = Buffer.from(await evaluate('window.testPDF'),'base64');
+  await writeFile(resolve(output,'certificate.pdf'),bytes);
+  await writeFile(resolve(output,'certificate-pdf-image.png'),Buffer.from((await evaluate('window.testCertificatePNG')).split(',')[1],'base64'));
+  const pdf = await PDFDocument.load(bytes);
+  assert.equal(pdf.getPageCount(),1); assert.equal(pdf.getTitle(),'Certificado do Poder Executivo');
+  console.log('PASS: desktop/mobile worlds, locks, theme persistence, optional reference content and Unicode PDF download.');
   assert.deepEqual(errors, [], 'No browser errors or hydration warnings');
   console.log('PASS: all visual theme checks. Screenshots in .data/theme-check');
 } finally {

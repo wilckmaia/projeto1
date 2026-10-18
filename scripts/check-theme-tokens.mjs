@@ -28,7 +28,7 @@ for (const [, selector, body] of css.matchAll(/([^{}]+)\{([^{}]+)\}/g)) {
     assert.ok(ratio >= 4.5, `${selector.trim()}: ${fg}/${bg} = ${ratio.toFixed(2)}`);
   }
 }
-assert.equal(palettes, 10, 'Two global palettes and eight political world palettes');
+assert.equal(palettes, 2, 'Two global palettes');
 
 const source = ts.transpileModule(readFileSync('src/lib/theme.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS },
@@ -51,4 +51,4 @@ runInNewContext(themeBootstrapScript, { document, localStorage: {
   getItem() { throw new Error('Storage blocked'); },
 } });
 assert.equal(document.documentElement.dataset.theme, 'light');
-console.log('PASS: 10 palettes, WCAG AA text contrast, saved theme bootstrap and blocked storage fallback');
+console.log('PASS: 2 palettes, WCAG AA text contrast, saved theme bootstrap and blocked storage fallback');

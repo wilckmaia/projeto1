@@ -162,7 +162,10 @@ export async function testAuthFlows({ prisma, base, post, current, getToken, mai
     assert.equal((await post('/api/session', { action: 'login', email: legacy.email, password: 'wrong' }, undefined, { 'X-Forwarded-For': '1.2.3.' + i })).status, 401);
     times.push(Date.now() - start);
   }
-  assert.ok(times.at(-1) > times[0] + 900, 'progressive delay uses shared IP bucket');
+  // Compare against the configured penalty, not a potentially slow first request.
+  assert.ok(times.at(-1) >= 1900, 'eighth failure receives the capped two-second delay');
+  const failureBucket = await prisma.rateLimit.findMany({ where: { count: 8 } });
+  assert.equal(failureBucket.length, 1, 'spoofed forwarding headers share one failure bucket');
   assert.equal((await login(legacy.email, 'old123')).status, 200, 'correct login after eight failures: no account lock');
   await clearLimits();
   for (let i = 0; i < 30; i++) assert.equal((await post('/api/session', { action: 'unknown' }, undefined, { 'X-Forwarded-For': '1.2.3.' + i })).status, 400);

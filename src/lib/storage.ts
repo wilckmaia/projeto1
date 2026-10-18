@@ -2,6 +2,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 import { worlds, getTaskById } from '@/lib/data';
+import { worlds as legacyWorlds } from '@/lib/legacy-data';
 import { defaultProgress, buildTaskCompletion, isWorldUnlocked, type UserProgress } from '@/lib/progress';
 import { prisma } from '@/lib/prisma';
 import { sessionUser } from './session';
@@ -13,7 +14,7 @@ export async function getCurrentUser(): Promise<UserRecord | null> {
   return user ? { ...user, createdAt: user.createdAt.toISOString() } : null;
 }
 export async function getProgressByUserId(userId: string, db: DB = prisma): Promise<UserProgress> {
-  const records = await db.taskProgress.findMany({ where: { userId }, include: { answers: true }, orderBy: [{ completedAt: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }] });
+  const records = await db.taskProgress.findMany({ where: { userId, taskId: { in: worlds.flatMap(world => world.tasks.map(task => task.id)) } }, include: { answers: true }, orderBy: [{ completedAt: { sort: 'asc', nulls: 'first' } }, { id: 'asc' }] });
   const taskProgress = Object.fromEntries(records.map(record => {
     const task = getTaskById(record.taskId);
     const answers = [...record.answers].sort((a, b) => Number(a.questionId.slice(record.taskId.length + 1)) - Number(b.questionId.slice(record.taskId.length + 1))).map(answer => ({
@@ -23,13 +24,33 @@ export async function getProgressByUserId(userId: string, db: DB = prisma): Prom
     return [record.taskId, { taskId: record.taskId, worldId: record.worldId, completed: record.completed, completedAt: record.completedAt?.toISOString() ?? null, answers, acertos: record.acertos, erros: record.erros }];
   }));
   const completedTasks = records.filter(record => record.completed).map(record => record.taskId);
-  const completedWorlds = worlds.filter(world => world.tasks.every(task => completedTasks.includes(task.id))).map(world => world.id);
+  const completedWorlds = worlds.filter(world => world.tasks.length > 0 && world.tasks.every(task => completedTasks.includes(task.id))).map(world => world.id);
   const lastRecord = records.at(-1);
   return { ...defaultProgress, completedTasks, completedWorlds, taskProgress, currentWorldId: lastRecord?.worldId ?? defaultProgress.currentWorldId, lastUpdated: lastRecord?.completedAt?.toISOString() ?? null };
 }
 export async function worldCompleted(userId: string, worldId: string, db: DB = prisma) {
-  const tasks = worlds.find(world => world.id === worldId)?.tasks.map(task => task.id);
+  const tasks = [...worlds, ...legacyWorlds].find(world => world.id === worldId)?.tasks.map(task => task.id);
   return Boolean(tasks?.length && await db.taskProgress.count({ where: { userId, completed: true, taskId: { in: tasks } } }) === tasks.length);
+}
+// Explicit completion replaces mandatory training. Answers and old rows are retained.
+export async function completeLesson(userId: string, taskId: string, worldId: string) {
+  const task = getTaskById(taskId);
+  if (worlds.find(world => world.id === worldId)?.original) throw new HttpError(400, 'Conclua as atividades deste mundo respondendo às perguntas.');
+  if (!task || task.worldId !== worldId) throw new HttpError(404, 'Lição não encontrada neste mundo.');
+  return prisma.$transaction(async tx => {
+    const users = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
+    if (!users.length) throw new HttpError(401, 'Entre novamente na sua conta.');
+    const progress = await getProgressByUserId(userId, tx);
+    if (!isWorldUnlocked(worldId, progress)) throw new HttpError(403, 'Mundo bloqueado. Conclua o mundo anterior.');
+    if (progress.taskProgress[taskId]?.completed) return progress;
+    const updated = buildTaskCompletion(taskId, worldId, [], new Date().toISOString(), progress);
+    const completedAt = new Date(updated.taskProgress[taskId].completedAt!);
+    await tx.taskProgress.upsert({ where: { userId_taskId: { userId, taskId } },
+      create: { id: 'progress-' + userId + '-' + taskId, userId, taskId, worldId, completed: true, completedAt },
+      update: { worldId, completed: true, completedAt },
+    });
+    return getProgressByUserId(userId, tx);
+  }, { maxWait: 10000, timeout: 15000 });
 }
 export async function saveAnswers(userId: string, taskId: string, worldId: string, answers: unknown[]) {
   const task = getTaskById(taskId);

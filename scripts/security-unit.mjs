@@ -13,10 +13,17 @@ function load(file, dependencies = {}) {
 const errors = load('src/lib/errors.ts');
 const security = load('src/lib/request-security.ts', { './errors': errors });
 const password = load('src/lib/password.ts', { './errors': errors, './password-policy': load('src/lib/password-policy.ts') });
-const data = load('src/lib/data.ts');
+const education = load('src/lib/education.ts');
+const data = load('src/lib/data.ts', { './education': education, './legacy-data': load('src/lib/legacy-data.ts'), './legacy-achievements': load('src/lib/legacy-achievements.ts') });
 const catalog = load('src/lib/catalog.ts');
-assert.deepEqual(catalog.worlds, data.worlds.map(({tasks,...world}) => ({...world,tasks:tasks.map(({id,title,questions})=>({id,title,questionCount:questions.length}))})), 'public catalog matches lesson metadata');
+assert.deepEqual(catalog.worlds, data.worlds.map(({tasks,tracks,...world}) => ({...world,tracks:tracks.map(track => ({id:track.id,title:track.title,description:track.description,lessonIds:track.lessons.map(lesson=>lesson.id)})),tasks:tasks.map(({id,title,questions})=>({id,title,questionCount:questions.length}))})), 'public catalog matches lesson metadata');
 const progress = load('src/lib/progress.ts', { '@/lib/catalog': catalog });
+assert.deepEqual(data.worlds.map(world => world.id), ['mundo-1', 'mundo-2', 'mundo-3', 'executivo', 'legislativo', 'judiciario', 'economia']);
+for (const number of [4, 5, 6, 7]) {
+  assert.equal(data.getWorldById('mundo-' + number), undefined);
+  assert.equal(progress.isWorldUnlocked('mundo-' + number, { ...progress.defaultProgress, completedTasks: data.allTasks.map(task => task.id) }), false);
+  for (let task = 1; task <= 8; task++) assert.equal(data.getTaskById('m' + number + '-t' + task), null);
+}
 for (const world of data.worlds) {
   assert.equal(progress.isWorldUnlocked(world.id, progress.defaultProgress), world.id === 'mundo-1');
 }

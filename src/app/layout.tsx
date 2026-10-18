@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import "./globals.css";
 import "./themes.css";
+import "katex/dist/katex.min.css";
 
 import { themeBootstrapScript } from "@/lib/theme";
 import { siteOrigin } from "@/lib/site";

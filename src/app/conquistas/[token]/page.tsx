@@ -3,9 +3,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import { worldCompleted } from '@/lib/storage';
-import { achievements } from '@/lib/achievements';
+import { achievements } from '@/lib/legacy-achievements';
 import { AchievementMedal } from '@/components/AchievementMedal';
-import { worlds } from '@/lib/data';
+import { worlds } from '@/lib/legacy-data';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Uma conquista para celebrar | Politika', description: 'Conhecimento que se transforma em conquista. Celebre mais um mundo concluído na Politika.', robots: { index: false, follow: false } };

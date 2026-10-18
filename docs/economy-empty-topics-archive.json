@@ -1,0 +1,734 @@
+{
+  "note": "Tópicos sem atividades removidos da navegação por solicitação do usuário. Nenhum registro de progresso foi excluído do banco.",
+  "tracks": [
+    {
+      "id": "economia-macroeconomia",
+      "title": "1. Macroeconomia",
+      "internalTopics": "Micromundos internos: inflação, PIB, desemprego, ciclos econômicos, crescimento econômico.",
+      "removedTopics": [
+        {
+          "id": "economia-macro-topico-2",
+          "title": "2. Inflação e deflação — causas, consequências e indicadores.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-macro-topico-4",
+          "title": "4. Crescimento econômico — fatores que determinam o crescimento de longo prazo.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-macro-topico-5",
+          "title": "5. Ciclos econômicos — expansão, recessão e recuperação.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-macro-topico-6",
+          "title": "6. Demanda e oferta agregadas — determinação da produção e dos preços.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-macro-topico-7",
+          "title": "7. Consumo, poupança e investimento — comportamento dos agentes econômicos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-macro-topico-8",
+          "title": "8. Modelos IS-LM e AD-AS — relações entre juros, produção e preços.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-macro-topico-9",
+          "title": "9. Expectativas e política macroeconômica — como previsões influenciam decisões.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-macro-topico-10",
+          "title": "10. Crises e estabilização econômica — recessões, choques e políticas de recuperação.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        }
+      ]
+    },
+    {
+      "id": "economia-microeconomia",
+      "title": "2. Microeconomia",
+      "internalTopics": "Micromundos internos: oferta e demanda, concorrência, monopólios, elasticidade, comportamento do consumidor.",
+      "removedTopics": [
+        {
+          "id": "economia-micro-topico-1",
+          "title": "1. Oferta e demanda — formação dos preços nos mercados.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-micro-topico-2",
+          "title": "2. Elasticidade econômica — sensibilidade da demanda e da oferta aos preços.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-micro-topico-3",
+          "title": "3. Teoria do consumidor — preferências, utilidade e escolhas.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-micro-topico-4",
+          "title": "4. Teoria da firma — decisões de produção das empresas.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-micro-topico-5",
+          "title": "5. Custos de produção — custos fixos, variáveis e marginais.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-micro-topico-6",
+          "title": "6. Concorrência perfeita — funcionamento de mercados competitivos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-micro-topico-7",
+          "title": "7. Monopólios e oligopólios — poder de mercado e estratégias empresariais.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-micro-topico-8",
+          "title": "8. Teoria dos jogos — decisões estratégicas entre agentes econômicos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-micro-topico-9",
+          "title": "9. Externalidades e bens públicos — falhas de mercado e suas soluções.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-micro-topico-10",
+          "title": "10. Assimetria de informação — seleção adversa, risco moral e incentivos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        }
+      ]
+    },
+    {
+      "id": "economia-setor-publico",
+      "title": "3. Economia do Setor Público",
+      "internalTopics": "Micromundos internos: impostos, gastos públicos, dívida pública, orçamento governamental, políticas fiscais.",
+      "removedTopics": [
+        {
+          "id": "economia-setor-publico-topico-1",
+          "title": "1. Tributação e sistemas tributários — impostos diretos, indiretos e progressividade.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-setor-publico-topico-2",
+          "title": "2. Orçamento público — planejamento, aprovação e execução das despesas.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-setor-publico-topico-3",
+          "title": "3. Política fiscal — utilização de impostos e gastos para influenciar a economia.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-setor-publico-topico-4",
+          "title": "4. Dívida pública — financiamento, juros e sustentabilidade fiscal.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-setor-publico-topico-5",
+          "title": "5. Déficit e superávit público — resultados fiscais e suas implicações.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-setor-publico-topico-6",
+          "title": "6. Federalismo fiscal — divisão de receitas e despesas entre governos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-setor-publico-topico-7",
+          "title": "7. Economia da saúde pública — financiamento e eficiência dos sistemas de saúde.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-setor-publico-topico-8",
+          "title": "8. Economia da educação — investimento educacional e retornos econômicos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-setor-publico-topico-9",
+          "title": "9. Previdência e seguridade social — financiamento e sustentabilidade dos benefícios.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-setor-publico-topico-10",
+          "title": "10. Avaliação de políticas públicas — análise de custos, benefícios e impactos de programas governamentais.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        }
+      ]
+    },
+    {
+      "id": "economia-internacional",
+      "title": "4. Economia Internacional",
+      "internalTopics": "Micromundos internos: comércio exterior, câmbio, tarifas, globalização, balança de pagamentos.",
+      "removedTopics": [
+        {
+          "id": "economia-internacional-topico-1",
+          "title": "1. Teoria das vantagens comparativas — especialização e ganhos do comércio.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-internacional-topico-2",
+          "title": "2. Comércio internacional — exportações, importações e fluxos comerciais.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-internacional-topico-3",
+          "title": "3. Tarifas e protecionismo — barreiras comerciais e seus efeitos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-internacional-topico-4",
+          "title": "4. Taxas de câmbio — determinação e variação do valor das moedas.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-internacional-topico-5",
+          "title": "5. Balança de pagamentos — registro das transações internacionais.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-internacional-topico-6",
+          "title": "6. Investimento estrangeiro direto — empresas multinacionais e fluxos de capital.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-internacional-topico-7",
+          "title": "7. Globalização econômica — integração de mercados e cadeias produtivas.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-internacional-topico-8",
+          "title": "8. Acordos comerciais e blocos econômicos — Mercosul, União Europeia e outros.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-internacional-topico-9",
+          "title": "9. Crises cambiais e financeiras internacionais — fuga de capitais e contágio econômico.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-internacional-topico-10",
+          "title": "10. Sistema monetário internacional — reservas internacionais, FMI e regimes cambiais.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        }
+      ]
+    },
+    {
+      "id": "economia-monetaria-financeira",
+      "title": "5. Economia Monetária e Financeira",
+      "internalTopics": "Micromundos internos: Banco Central, taxa Selic, bancos, mercado de capitais, política monetária.",
+      "removedTopics": [
+        {
+          "id": "economia-monetaria-financeira-topico-1",
+          "title": "1. Teoria da moeda — funções, demanda e oferta de moeda.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-monetaria-financeira-topico-2",
+          "title": "2. Bancos Centrais — objetivos, instrumentos e independência institucional.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-monetaria-financeira-topico-3",
+          "title": "3. Política monetária — mecanismos de controle da liquidez e dos juros.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-monetaria-financeira-topico-4",
+          "title": "4. Taxas de juros — juros nominais, reais e estrutura a termo.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-monetaria-financeira-topico-5",
+          "title": "5. Sistema bancário — intermediação financeira e criação de depósitos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-monetaria-financeira-topico-6",
+          "title": "6. Crédito e financiamento — concessão de empréstimos e restrições financeiras.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-monetaria-financeira-topico-7",
+          "title": "7. Mercado de capitais — ações, títulos e financiamento empresarial.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-monetaria-financeira-topico-8",
+          "title": "8. Risco e retorno — diversificação, precificação de ativos e investimentos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-monetaria-financeira-topico-9",
+          "title": "9. Regulação financeira — supervisão bancária, capital e estabilidade financeira.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-monetaria-financeira-topico-10",
+          "title": "10. Crises bancárias e financeiras — corridas bancárias, liquidez e risco sistêmico.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        }
+      ]
+    },
+    {
+      "id": "economia-desenvolvimento",
+      "title": "6. Desenvolvimento Econômico",
+      "internalTopics": "Micromundos internos: produtividade, industrialização, desigualdade, pobreza, capital humano.",
+      "removedTopics": [
+        {
+          "id": "economia-desenvolvimento-topico-1",
+          "title": "1. Teorias do desenvolvimento econômico — diferentes explicações para o desenvolvimento.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-desenvolvimento-topico-2",
+          "title": "2. Pobreza e desigualdade — mensuração, causas e consequências.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-desenvolvimento-topico-3",
+          "title": "3. Capital humano — educação, saúde e qualificação profissional.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-desenvolvimento-topico-4",
+          "title": "4. Produtividade econômica — eficiência e produção por trabalhador.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-desenvolvimento-topico-5",
+          "title": "5. Industrialização e transformação estrutural — mudanças entre setores produtivos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-desenvolvimento-topico-6",
+          "title": "6. Inovação e progresso tecnológico — impactos da tecnologia no desenvolvimento.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-desenvolvimento-topico-7",
+          "title": "7. Instituições e desenvolvimento — direitos de propriedade, governança e incentivos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-desenvolvimento-topico-8",
+          "title": "8. Economia agrícola e desenvolvimento rural — produtividade, terra e transformação do campo.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-desenvolvimento-topico-9",
+          "title": "9. Urbanização e desenvolvimento regional — crescimento das cidades e desigualdades territoriais.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-desenvolvimento-topico-10",
+          "title": "10. Desenvolvimento sustentável — recursos naturais, meio ambiente e crescimento de longo prazo.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        }
+      ]
+    },
+    {
+      "id": "economia-politica",
+      "title": "7. Economia Política",
+      "internalTopics": "Micromundos internos: capitalismo, socialismo, liberalismo econômico, instituições, grupos de interesse, distribuição de renda.",
+      "removedTopics": [
+        {
+          "id": "economia-politica-topico-1",
+          "title": "1. História do pensamento econômico — Smith, Ricardo, Marx, Keynes, Hayek e outras tradições.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-politica-topico-2",
+          "title": "2. Capitalismo e sistemas econômicos — propriedade privada, mercados e organização da produção.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-politica-topico-3",
+          "title": "3. Socialismo e planejamento econômico — propriedade coletiva, coordenação e alocação de recursos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-politica-topico-4",
+          "title": "4. Liberalismo econômico e neoliberalismo — liberdade econômica, mercados e reformas institucionais.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-politica-topico-5",
+          "title": "5. Intervencionismo estatal — regulação, subsídios e atuação governamental.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-politica-topico-6",
+          "title": "6. Teoria da escolha pública (Public Choice) — incentivos de políticos, eleitores e burocratas.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-politica-topico-7",
+          "title": "7. Instituições políticas e desempenho econômico — democracia, Estado de Direito e desenvolvimento.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-politica-topico-8",
+          "title": "8. Economia política da redistribuição — tributação, transferências e conflitos distributivos.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-politica-topico-9",
+          "title": "9. Grupos de interesse e captura regulatória — lobby, rent-seeking e influência sobre políticas.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        },
+        {
+          "id": "economia-politica-topico-10",
+          "title": "10. Economia política das reformas — privatizações, abertura comercial, reformas fiscais e resistência política.",
+          "summary": "",
+          "explanation": "",
+          "deepContent": "",
+          "keyConcepts": [],
+          "examples": [],
+          "questions": []
+        }
+      ]
+    }
+  ]
+}

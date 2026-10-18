@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
       ],
     }, ...[
       '/', '/perfil', '/confirmar', '/verificar-email', '/recuperar-senha',
-      '/redefinir-senha', '/conquistas/:path*', '/api/:path*',
+      '/redefinir-senha', '/conquistas/:path*', '/certificados/:path*', '/biblioteca/:path*', '/api/:path*',
     ].map(source => ({
       // Login, personal data and token-based pages are not search results.
       source,

@@ -28,7 +28,8 @@ export async function testAuthBrowser({ evaluate, waitFor, navigate, prisma, mai
     await waitFor("!!document.querySelector('.world-grid')");
     await evaluate("[...document.querySelectorAll('button')].find(b => b.textContent === 'Sair').click()");
     await waitFor("!!document.querySelector('.auth-form')");
-    assert.equal(await evaluate(`!!document.querySelector('a[href="/recuperar-senha"]')`), true);
+    // The existing login intentionally hides this link; the direct recovery route is tested below.
+    assert.equal(await evaluate(`!!document.querySelector('a[href="/recuperar-senha"]')`), false);
     await navigate('/confirmar#kind=reset&token=' + 'a'.repeat(43));
     await waitFor("!!document.querySelector('[role=alert]')");
     assert.equal(await evaluate("!!document.querySelector('input[type=password]')"), false);

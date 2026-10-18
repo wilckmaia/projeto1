@@ -16,11 +16,14 @@ const migration = spawn(process.execPath, ['node_modules/prisma/build/index.js',
 const [migrationCode] = await once(migration, 'exit');
 assert.equal(migrationCode, 0, 'test migrations applied');
 const require = createRequire(import.meta.url);
+function load(file,deps){const exp={};new Function('exports','require',ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS}}).outputText)(exp,n=>n==='server-only'?{}:deps[n]??require(n));return exp;}
 const prisma = new PrismaClient();
 const base = process.env.APP_ORIGIN;
 assert.equal(new URL(base).hostname, '127.0.0.1');
 const exports = {};
-new Function('exports', 'require', ts.transpileModule(readFileSync('src/lib/data.ts','utf8'), {compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS}}).outputText)(exports, name => { assert.equal(name,'server-only'); return {}; });
+const education = {};
+new Function('exports', ts.transpileModule(readFileSync('src/lib/education.ts','utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(education);
+new Function('exports', 'require', ts.transpileModule(readFileSync('src/lib/data.ts','utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText)(exports, name => name === 'server-only' ? {} : name === './education' ? education : name === './legacy-data' ? load('src/lib/legacy-data.ts', {}) : load('src/lib/legacy-achievements.ts', {}));
 const { worlds } = exports;
 const mail = [];
 const delivery = { mode: 'ok' };
@@ -84,7 +87,7 @@ try {
   assert.equal(html.headers.get('x-powered-by'),null);
   const markup = await html.text();
   assert.match(markup,/<script[^>]+nonce=/);
-  assert.ok(!markup.includes(worlds[0].tasks[0].questions[0].explanation),'no answer keys in anonymous page');
+  assert.ok(!markup.includes('correctIndex'), 'no answer keys in anonymous page');
   assert.equal((await post('/api/session',{action:'login'},undefined,{Origin:'https://evil.example'})).status,403);
   assert.equal((await post('/api/session',{action:'login'},undefined,{'Content-Type':'text/plain'})).status,415);
   assert.equal((await post('/api/session',{action:'unknown'})).status,400);
@@ -100,55 +103,40 @@ try {
   const duplicate = await post('/api/session',{action:'register',name:'Not the owner',email:a.email,password:'A different long secret 12345'});
   assert.equal(duplicate.status,202);
   assert.equal((await prisma.user.findUnique({where:{id:a.id}})).name,'Teste de conquistas','registration cannot overwrite existing account');
-  const privatePage = await fetch(base+'/mundo-1/m1-t1',{headers:{Cookie:a.cookie}});
-  assert.equal(privatePage.status,200);
-  assert.ok(!(await privatePage.text()).includes(worlds[0].tasks[0].questions[0].explanation),'unsubmitted explanations stay server-side');
   for (const world of worlds) {
-    await clearLimits();
-    assert.equal((await post('/api/achievements/share',{worldId:world.id},a.cookie)).status,403);
-    for (const task of world.tasks) {
-      await clearLimits();
-      const answers = task.questions.map((q,i)=>({questionId:task.id+'-'+i,selectedIndex:0}));
-      if (task.sequential) {
-        const partial = await post('/api/progress',{worldId:world.id,taskId:task.id,answers:answers.slice(0,1)},a.cookie);
-        assert.equal(partial.status,200);
-        assert.equal((await partial.json()).progress.taskProgress[task.id].completed,false);
-        // Full and shorter request overlap: final state must never regress.
-        const concurrent = await Promise.all([post('/api/progress',{worldId:world.id,taskId:task.id,answers},a.cookie),post('/api/progress',{worldId:world.id,taskId:task.id,answers:answers.slice(0,1)},a.cookie)]);
-        assert.equal(concurrent[0].status,200);
-        assert.ok([200,409].includes(concurrent[1].status));
-      } else {
-        assert.equal((await post('/api/progress',{worldId:world.id,taskId:task.id,answers},a.cookie)).status,200);
-      }
-      const duplicate = await post('/api/progress',{worldId:world.id,taskId:task.id,answers},a.cookie);
-      assert.equal(duplicate.status,200);
-      const result = await duplicate.json();
-      assert.equal(result.progress.taskProgress[task.id].completed,true);
-      assert.equal(result.progress.taskProgress[task.id].answers[0].correctIndex,task.questions[0].correctIndex);
-      assert.equal(await prisma.answerAttempt.count({where:{userId:a.id,taskId:task.id}}),answers.length,'bounded answer storage');
-    }
-    await clearLimits();
-    const shared = await post('/api/achievements/share',{worldId:world.id},a.cookie);
-    assert.equal(shared.status,200);
-    const {path} = await shared.json();
-    const page = await fetch(base+path);
-    assert.equal(page.status,200);
-    const text = await page.text(); assert.ok(text.includes('Teste de conquistas')); assert.ok(!text.includes(a.email)); assert.ok(!text.includes(a.id));
-    const wrongOwner = await fetch(base+'/api/achievements/share',{method:'DELETE',headers:{Origin:base,'Content-Type':'application/json',Cookie:b.cookie},body:JSON.stringify({worldId:world.id})});
-    assert.equal(wrongOwner.status,200);
-    assert.equal((await fetch(base+path)).status,200,'other user cannot revoke share');
-    await fetch(base+'/api/achievements/share',{method:'DELETE',headers:{Origin:base,'Content-Type':'application/json',Cookie:a.cookie},body:JSON.stringify({worldId:world.id})});
-    assert.equal((await fetch(base+path)).status,404,'revoked link inaccessible');
-    console.log('PASS: progression, persistence, concurrency and sharing '+world.id);
+    const response = await fetch(base + '/' + world.id, { headers: { Cookie: a.cookie } });
+    assert.equal(response.status, 200);
+    const text = await response.text();
+    assert.ok(text.includes(world.id === 'mundo-1' ? 'Fundamentos' : 'Mundo bloqueado'));
+    assert.equal((await post('/api/certificates', {worldId: world.id}, a.cookie)).status, 403);
+    assert.equal((await post('/api/progress', {worldId: world.id, taskId:'nonexistent', ...(world.original ? {answers:[]} : {completed:true})}, a.cookie)).status,404);
   }
-  await clearLimits();
-  assert.equal((await current(b.cookie)).progress.completedTasks.length,0,'other account unchanged');
-  const first = worlds[0].tasks[0];
-  assert.equal((await post('/api/progress',{worldId:worlds[0].id,taskId:first.id,userId:a.id,answers:[]},b.cookie)).status,400);
-  assert.equal((await post('/api/progress',{worldId:'mundo-2',taskId:worlds[1].tasks[0].id,answers:worlds[1].tasks[0].questions.map((q,i)=>({questionId:worlds[1].tasks[0].id+'-'+i,selectedIndex:0}))},b.cookie)).status,403);
-  const logout = await fetch(base+'/api/session',{method:'DELETE',headers:{Origin:base,'Content-Type':'application/json',Cookie:a.cookie}});
-  assert.equal(logout.status,200);
-  assert.equal((await current(a.cookie)).user,null,'replay after logout rejected');
+  assert.equal((await current(a.cookie)).progress.completedWorlds.length, 0, 'empty worlds never complete');
+  assert.equal(await prisma.certificate.count({where:{userId:a.id}}),0,'empty worlds never issue');
+  assert.equal((await fetch(base+'/biblioteca',{headers:{Cookie:a.cookie}})).status,200);
+  assert.equal((await fetch(base+'/biblioteca/m1-t1',{headers:{Cookie:a.cookie}})).status,200);
+  // Archived progress and public achievement links still work after restructuring.
+  const legacy = load('src/lib/legacy-data.ts', {}).worlds[0];
+  for (const task of legacy.tasks) await prisma.taskProgress.create({data:{id:randomUUID(),userId:a.id,worldId:legacy.id,taskId:task.id,completed:true,completedAt:new Date()}});
+  const legacyShare = await post('/api/achievements/share',{worldId:legacy.id},a.cookie);
+  assert.equal(legacyShare.status,200);
+  const publicPath = (await legacyShare.json()).path;
+  assert.equal((await fetch(base+publicPath)).status,200);
+  assert.equal((await current(a.cookie)).progress.completedTasks.length,legacy.tasks.length,'existing progress is restored');
+  for(const world of worlds.filter(world=>world.original).slice(1)){
+    for(const task of world.tasks){
+      await clearLimits();
+      assert.equal((await post('/api/progress',{worldId:world.id,taskId:task.id,answers:task.questions.map((q,i)=>({questionId:task.id+'-'+i,selectedIndex:q.correctIndex}))},a.cookie)).status,200);
+    }
+  }
+  for(const world of worlds.filter(world=>!world.original)){
+    const page=await fetch(base+'/'+world.id,{headers:{Cookie:a.cookie}});
+    assert.ok((await page.text()).includes(world.id === 'economia' ? '1. Macroeconomia' : 'As trilhas estão em preparação'),'all four worlds unlocked together');
+  }
+  const snapshot = await prisma.certificate.create({data:{userId:a.id,worldId:'ownership-fixture',userName:'Test fixture',worldName:'Test fixture',title:'Test fixture',color:'#24764f',completedAt:new Date()}});
+  assert.equal((await fetch(base+'/certificados/'+snapshot.id,{headers:{Cookie:a.cookie}})).status,200);
+  assert.equal((await fetch(base+'/certificados/'+snapshot.id,{headers:{Cookie:b.cookie}})).status,404,'certificate owner isolation');
+  assert.equal((await post('/api/progress',{worldId:'mundo-1',taskId:'m1-t1',completed:true},a.cookie)).status,400);
   const login = await post('/api/session',{action:'login',email:a.email,password:a.password});
   a.cookie = login.headers.get('set-cookie').split(';')[0];
   await prisma.session.update({where:{tokenHash:hashToken(a.cookie.split('=')[1])},data:{expiresAt:new Date(0)}});
@@ -157,7 +145,6 @@ try {
   assert.equal((await current(b.cookie)).user.id,b.id,'other sessions remain valid');
   await clearLimits();
   // Concurrent clients using the real distributed limiter cannot over-admit.
-  function load(file,deps){const exp={};new Function('exports','require',ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS}}).outputText)(exp,n=>n==='server-only'?{}:deps[n]??require(n));return exp;}
   const errors=load('src/lib/errors.ts',{});
   const limiter=load('src/lib/rate-limit.ts',{'./prisma':{prisma},'./errors':errors});
   const attempts=await Promise.allSettled(Array.from({length:20},()=>limiter.limit('concurrent-test','test',5,60)));

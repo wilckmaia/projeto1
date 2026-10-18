@@ -4,9 +4,10 @@ import { randomBytes } from 'node:crypto';
 import { mkdirSync, writeFileSync, readFileSync, copyFileSync, unlinkSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { createServer } from 'node:net';
+import { tmpdir } from 'node:os';
 import { assertTestDatabase } from './test-safety.mjs';
 const runId = randomBytes(6).toString('hex');
-const root = resolve('.security-test', runId);
+const root = resolve(tmpdir(), 'politika-security-' + runId);
 mkdirSync(root, { recursive: true });
 const pgBin = process.env.PG_BIN ?? (process.platform === 'win32' ? 'C:/Program Files/PostgreSQL/18/bin' : '/usr/lib/postgresql/18/bin');
 const pg = name => join(pgBin, name + (process.platform === 'win32' ? '.exe' : ''));
@@ -57,12 +58,17 @@ try {
   await node(['node_modules/prisma/build/index.js', 'migrate', 'deploy']);
   await node(['node_modules/prisma/build/index.js', 'migrate', 'deploy']);
   await node(['node_modules/prisma/build/index.js', 'migrate', 'diff', '--from-schema-datasource', 'prisma/schema.prisma', '--to-schema-datamodel', 'prisma/schema.prisma', '--exit-code']);
+  if (process.argv.includes('--browser-only')) {
+    // Reuse a previously verified production build, with a fresh isolated database.
+    await node(['scripts/check-themes.mjs']);
+  } else {
   await node(['node_modules/prisma/build/index.js', 'generate']);
   await node(['node_modules/next/dist/bin/next', 'typegen']);
   await node(['node_modules/typescript/bin/tsc', '--noEmit', '--incremental', 'false']);
   await node(['scripts/security-unit.mjs']);
   await node(['node_modules/next/dist/bin/next', 'build']);
   await node(['scripts/check-achievements.mjs']);
+  await node(['scripts/test-education-database.mjs']);
   if (process.argv.includes('--browser')) await node(['scripts/check-themes.mjs']);
   const importDatabase = 'politika_' + randomBytes(6).toString('hex') + '_security_test';
   sync(pg('createdb'), [importDatabase]);
@@ -72,6 +78,7 @@ try {
   await node(['node_modules/prisma/build/index.js', 'migrate', 'deploy']);
   await node(['scripts/test-import.mjs']);
   console.log('PASS: isolated migration upgrade, build and security integration.');
+  }
 } finally {
   if (started) sync(pg('pg_ctl'), ['-D', join(root, 'postgres'), '-m', 'fast', '-w', 'stop']);
   // Keep only ignored, stopped test data for diagnosis. No remote database touched.

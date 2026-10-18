@@ -1,68 +1,27 @@
-import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { WorldIcon } from '@/components/WorldIcon';
+import { CertificateButton } from '@/components/CertificateButton';
 import { getWorldById } from '@/lib/data';
 import { getSessionPayload } from '@/lib/storage';
-import { isWorldUnlocked } from '@/lib/progress';
-
+import { getWorldStatus } from '@/lib/progress';
 export default async function WorldPage({ params }: { params: Promise<{ world: string }> }) {
-  const { world } = await params;
-  const session = await getSessionPayload();
-
-  if (!session.user) {
-    redirect('/');
-  }
-
-  const selectedWorld = getWorldById(world);
-  if (!selectedWorld) {
-    redirect('/');
-  }
-
-  if (!isWorldUnlocked(world, session.progress)) {
-    redirect(`/?blocked=${world}`);
-  }
-
-  return (
-    <main className="task-page" data-world={world} data-world-page={world}>
-      <div className="task-header">
-        <ThemeToggle />
-        <Link href="/" className="back-button" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          ← Voltar ao início
-        </Link>
-        <div className="eyebrow">Mundo {selectedWorld.number}</div>
-        <Link href="/perfil" className="secondary-button">Meu perfil</Link>
-      </div>
-
-      <div className="task-body">
-        <div className="eyebrow">{selectedWorld.subtitle}</div>
-        <h1>{selectedWorld.name}</h1>
-        <div className="subtitle">{selectedWorld.description}</div>
-
-        <div className="keybox" style={{ marginTop: 24 }}>
-          <h3>Etapas do mundo</h3>
-          <div className="kpis">
-            {selectedWorld.tasks.map((task) => (
-              <span key={task.id}>{task.title}</span>
-            ))}
-          </div>
-        </div>
-
-        <div className="task-list" style={{ marginTop: 24 }}>
-          {selectedWorld.tasks.map((task) => {
-            const completed = session.progress.completedTasks.includes(task.id);
-            return (
-              <Link key={task.id} href={`/${selectedWorld.id}/${task.id}`} className="task-item">
-                <span className={`dot ${completed ? '' : 'pending'}`} />
-                <div className="meta">
-                  <strong>{task.title}</strong>
-                  <small>{task.summary}</small>
-                </div>
-                <span className="status">{completed ? 'Concluída' : 'Abrir'}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-    </main>
-  );
+ const { world: id } = await params;
+ const world = getWorldById(id);
+ if (!world) notFound();
+ const { user, progress } = await getSessionPayload();
+ if (!user) redirect('/');
+ const { unlocked, summary, blockedReason } = getWorldStatus(id, progress);
+ return <main className="task-page" data-world={id} data-world-page={id}>
+   <header className="task-header"><Link href="/" className="back-button">← Início</Link><Link href="/perfil" className="secondary-button">Meus certificados</Link><ThemeToggle/></header>
+   <div className="task-body"><span className="world-icon"><WorldIcon kind={world.icon}/></span><div className="eyebrow">Mundo {world.number}</div><h1>{world.name}</h1><p className="subtitle">{world.description}</p>
+   <div className="world-progress"><span>{summary.percent}% · {summary.completed}/{summary.total} lições concluídas</span><progress max={Math.max(1, summary.total)} value={summary.completed}/></div>
+   {!unlocked ? <section className="locked-state"><h2>🔒 Mundo bloqueado</h2><p>{blockedReason}</p><Link className="secondary-button" href="/#trilhas">Voltar aos mundos</Link></section> : <>
+    <section><div className="section-head"><h2>{id === 'economia' ? 'Micromundos' : 'Trilhas educacionais'}</h2></div>{world.tracks.length === 0 ? <div className="empty-state"><h3>As trilhas estão em preparação</h3><p>Este mundo ainda não tem trilhas ou lições cadastradas. Seu progresso começa quando os conteúdos forem publicados.</p><Link className="secondary-button" href="/biblioteca">Consultar conteúdos anteriores</Link></div> : <div className="task-list">{world.tracks.map(track => <Link className="task-item" key={track.id} href={'/' + id + '/trilhas/' + track.id}><span className="meta"><strong>{track.title}</strong><small>{track.overview ?? track.description}</small>{track.internalTopics && <small>{track.internalTopics}</small>}</span><span>{track.lessons.filter(lesson => progress.completedTasks.includes(lesson.id)).length}/{track.lessons.length} lições →</span></Link>)}</div>}</section>
+    <section className="keybox"><h2>Lições</h2><p>{summary.total ? id === 'economia' ? 'Selecione um micromundo acima para acessar seus tópicos.' : 'Selecione uma trilha acima para acessar suas lições.' : 'As futuras lições aparecerão organizadas por trilha.'}</p></section>
+   </>}
+   <section className="keybox"><h2>{world.certificateTitle}</h2>{unlocked && summary.total > 0 && summary.completed === summary.total ? <CertificateButton worldId={id}/> : <p>Disponível após concluir todas as lições deste mundo. Mundos vazios não emitem certificados.</p>}</section>
+   </div>
+ </main>;
 }

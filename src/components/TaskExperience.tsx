@@ -1,189 +1,32 @@
 'use client';
-
-import { useMemo, useRef, useState } from 'react';
+import { useState, useRef } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { Task } from '@/lib/data';
-import type { ProgressAnswer } from '@/lib/progress';
-export type ClientTask = Omit<Task, 'questions'> & { worldId: string; worldName: string; questions: { prompt: string; options: string[] }[] };
+import type { Lesson } from '@/lib/education';
 import type { TaskProgress } from '@/lib/progress';
-
-type Props = {
-  task: ClientTask;
-  worldId: string;
-  nextHref: string;
-  initialProgress?: TaskProgress;
-};
-
-const buildResult = (sel: number | undefined, correct: number) => {
-  if (sel === undefined) return 'pending';
-  return sel === correct ? 'correct' : 'wrong';
-};
-
-export function TaskExperience({ task, worldId, nextHref, initialProgress }: Props) {
+import { LessonContent } from './LessonContent';
+export function TaskExperience({ task, worldId, nextHref, initialProgress, content, heading }: { task: Lesson & { worldName: string }; worldId: string; nextHref: string; initialProgress?: TaskProgress; content?: ReactNode; heading?: string }) {
   const router = useRouter();
-  const saveInFlight = useRef(false);
-  const restored = task.sequential ? Object.fromEntries((initialProgress?.answers ?? []).map((answer) => [Number(answer.questionId.slice(task.id.length + 1)), answer.selectedIndex])) : {};
-  const [selected, setSelected] = useState<Record<number, number>>(restored);
-  const [questionIndex, setQuestionIndex] = useState(Math.min(Object.keys(restored).length, task.questions.length - 1));
-  const [submitted, setSubmitted] = useState(Boolean(task.sequential && initialProgress?.completed));
+  const [done, setDone] = useState(Boolean(initialProgress?.completed));
   const [saving, setSaving] = useState(false);
-  const [feedback, setFeedback] = useState<ProgressAnswer[]>(initialProgress?.answers ?? []);
-  const [toast, setToast] = useState('');
-  const [achievementUnlocked, setAchievementUnlocked] = useState(false);
-
-  const answeredCount = useMemo(
-    () => Object.keys(selected).filter((index) => selected[Number(index)] !== undefined).length,
-    [selected],
-  );
-
-  const allAnswered = task.questions.length > 0 && answeredCount === task.questions.length;
-
-  const handleSelect = (questionIndex: number, optionIndex: number) => {
-    setSelected((current) => ({ ...current, [questionIndex]: optionIndex }));
-    setSubmitted(false);
-  };
-
-  const handleSubmit = async () => {
-    if (saveInFlight.current) return;
-    if (task.sequential ? selected[questionIndex] === undefined : !allAnswered) {
-      setToast('Responda todas as questões antes de corrigir.');
-      return;
-    }
-
-    const answers = task.questions.slice(0, task.sequential ? questionIndex + 1 : task.questions.length).map((question, questionIndex) => {
-      const selectedIndex = selected[questionIndex];
-      return {
-        questionId: `${task.id}-${questionIndex}`,
-        selectedIndex,
-      };
-    });
-
-    saveInFlight.current = true;
-    setSaving(true);
-    setToast('');
-    try {
-      const response = await fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId: task.id, worldId, answers }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || data.ok !== true) {
-        setToast(data.error ?? 'Não foi possível salvar o progresso.');
-        return;
-      }
-
-      setFeedback(data.progress.taskProgress[task.id].answers);
-      setSubmitted(true);
-      setAchievementUnlocked(Boolean(data.progress?.completedWorlds?.includes(worldId)));
-      setToast(data.message ?? 'Progresso salvo com sucesso.');
-    } catch {
-      setToast('Não foi possível salvar o progresso. Tente novamente.');
-    } finally {
-      saveInFlight.current = false;
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="task-body">
-      <div className="task-header">
-        <button className="back-button" type="button" onClick={() => router.push(`/${worldId}`)}>
-          ← Voltar ao mundo
-        </button>
-        <div className="progress-rail">
-          <span style={{ width: `${Math.min(100, (answeredCount / task.questions.length) * 100)}%` }} />
-        </div>
-      </div>
-
-      <div className="eyebrow">{task.worldName}</div>
-      <Link href="/perfil" className="profile-task-link">Meu perfil e conquistas ↗</Link>
-      <h1>{task.title}</h1>
-      <div className="subtitle">{task.sequential ? task.summary.split('\n\n').map((paragraph, index) => <p key={index}>{paragraph.split(/(\*\*.*?\*\*)/g).map((part, partIndex) => part.startsWith('**') ? <strong key={partIndex}>{part.slice(2, -2)}</strong> : part)}</p>) : task.summary}</div>
-
-      {(task.explanation || task.deepContent) && <div className="task-narrative">
-        <p>{task.explanation}</p>
-        <p>{task.deepContent}</p>
-      </div>}
-
-      {task.keyConcepts.length > 0 && <div className="keybox">
-        <h3>Conceitos-chave</h3>
-        <div className="kpis">
-          {task.keyConcepts.map((concept) => (
-            <span key={concept}>{concept}</span>
-          ))}
-        </div>
-      </div>}
-
-      {task.questions.map((question, index) => {
-        if (task.sequential && index !== questionIndex) return null;
-        const currentSelection = selected[index];
-        const answerFeedback = feedback.find(answer => answer.questionId === `${task.id}-${index}`);
-        const correctIndex = answerFeedback?.correctIndex ?? -1;
-        const result = buildResult(currentSelection, correctIndex);
-
-        return (
-          <div className="question-card" key={question.prompt}>
-            <h3>{index + 1}. {question.prompt}</h3>
-            <div className="option-list">
-              {question.options.map((option, optionIndex) => {
-                const buttonClass = submitted
-                  ? optionIndex === correctIndex
-                    ? 'option-button correct'
-                    : currentSelection === optionIndex && currentSelection !== correctIndex
-                      ? 'option-button wrong'
-                      : 'option-button'
-                  : currentSelection === optionIndex
-                    ? 'option-button selected'
-                    : 'option-button';
-
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    className={buttonClass}
-                    disabled={saving || Boolean(task.sequential && submitted)}
-                    onClick={() => handleSelect(index, optionIndex)}
-                  >
-                    {task.sequential ? `${String.fromCharCode(65 + optionIndex)}) ${option}` : option}
-                  </button>
-                );
-              })}
-            </div>
-
-            {submitted && (
-              <div className={`feedback-box ${result === 'correct' ? 'correct' : 'incorrect'}`}>
-                <strong>{result === 'correct' ? 'Correto' : 'Resposta discutida'}</strong>
-                {answerFeedback?.explanation}
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      <div className="action-row">
-        {submitted ? (
-          <button className="primary-button" type="button" onClick={() => {
-            if (task.sequential && questionIndex < task.questions.length - 1) {
-              setQuestionIndex((current) => current + 1);
-              setSubmitted(false);
-              setToast('');
-            } else router.push(nextHref);
-          }}>
-            Próxima
-          </button>
-        ) : (
-          <button className="primary-button" type="button" onClick={handleSubmit} disabled={saving}>
-            {saving ? 'Corrigindo...' : 'Corrigir'}
-          </button>
-        )}
-      </div>
-
-      {achievementUnlocked && <div className="keybox" role="status"><h3>✦ Mundo concluído. Sua conquista está desbloqueada!</h3><Link href="/perfil">Ver minha medalha e compartilhar →</Link></div>}
-      {toast && <div className="toast" role="status">{toast}</div>}
-    </div>
-  );
+  const [error, setError] = useState('');
+  const inFlight = useRef(false);
+  return <div className="task-body"><Link className="back-button" href={'/' + worldId}>← Voltar ao mundo</Link><div className="eyebrow">{task.worldName}</div><h1>{heading ?? task.title}</h1>
+    {content ?? <LessonContent lesson={task}/>}
+    <section className="lesson-conclusion"><div className="eyebrow">04 · Conclusão</div><h2>{done ? 'Lição concluída' : 'Estudou o conteúdo?'}</h2><p>A conclusão depende apenas da sua confirmação. Não há treinamento obrigatório.</p>
+      {!done ? <button className="primary-button" disabled={saving} onClick={async () => {
+        if (inFlight.current) return;
+        inFlight.current = true; setSaving(true); setError('');
+        try {
+          const response = await fetch('/api/progress', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ taskId: task.id, worldId, completed: true }) });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error ?? 'Não foi possível salvar.');
+          setDone(true); router.refresh();
+        } catch (error) { setError(error instanceof Error ? error.message : 'Falha de conexão.'); }
+        finally { setSaving(false); inFlight.current = false; }
+      }}>{saving ? 'Salvando…' : 'Concluir lição'}</button> : <div role="status"><p>✓ Progresso salvo na sua conta.</p><Link className="primary-button" href={nextHref}>Continuar →</Link><Link className="secondary-button" href={'/' + worldId}>Voltar ao mundo</Link></div>}
+      {error && <p role="alert">{error}</p>}
+    </section>
+  </div>;
 }

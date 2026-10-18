@@ -20,6 +20,23 @@ model User {
   progress     TaskProgress[]
   answers      AnswerAttempt[]
   achievementShares AchievementShare[]
+  certificates Certificate[]
+}
+
+// Immutable issuance snapshots; existing shares and progress remain untouched.
+model Certificate {
+  id String @id @default(uuid())
+  userId String
+  worldId String
+  userName String
+  worldName String
+  title String
+  color String
+  platform String @default("Politika")
+  completedAt DateTime
+  issuedAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, worldId])
 }
 
 model PasswordResetToken {
